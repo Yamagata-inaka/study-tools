@@ -71,7 +71,7 @@ footer a{color:inherit;font-weight:800}
 <canvas id="rain" aria-hidden="true"></canvas>
 <main>
   <header>
-    <span class="kicker">ブラウザだけで動く 3 本</span>
+    <span class="kicker">ブラウザだけで動く 4 本</span>
     <h1>学習ツール集</h1>
     <p class="lead">ネットワークと基本情報を、<b>手を動かして</b>覚える。</p>
   </header>
@@ -93,6 +93,13 @@ footer a{color:inherit;font-weight:800}
       <span class="chips"><span>11 種類の問題</span><span>自動生成</span><span>2 進数の解説</span></span>
       <span class="go">開く →</span>
     </a></li>
+    <li><a class="tool" href="mysql-drill/" style="--c:var(--yellow);--r:.6deg">
+      <span class="mark">SQL&gt;</span>
+      <span class="name">MySQL 基本操作ドリル</span>
+      <span class="desc">MySQL の接続、SQL、トランザクション、権限を、ブラウザ上の疑似コンソールで練習します。結果と状態を自動で採点します。</span>
+      <span class="chips"><span>通し練習</span><span>一問一答</span><span>四択</span><span>早見表</span></span>
+      <span class="go">開く →</span>
+    </a></li>
     <li><a class="tool" href="kamoku-b/" style="--c:var(--sky);--r:-.7deg">
       <span class="mark">科目B</span>
       <span class="name">科目B 完走コース</span>
@@ -111,7 +118,7 @@ footer a{color:inherit;font-weight:800}
 
 <script>
 // 帯の文字列。同じ内容を 2 回並べ、半分動いた時点で先頭に戻して継ぎ目をなくす
-const TAPE = '★ enable ★ configure terminal ★ 255.255.255.192 ★ no shutdown ★ 擬似言語 ★ トレース ★ 二分探索 ★ show running-config ';
+const TAPE = '★ enable ★ configure terminal ★ 255.255.255.192 ★ no shutdown ★ SELECT * FROM ★ 擬似言語 ★ トレース ★ 二分探索 ★ show running-config ';
 document.getElementById('tape').textContent = TAPE.repeat(4) + TAPE.repeat(4);
 
 // 背景に降る記号。動きを減らす設定の閲覧者には出さない
