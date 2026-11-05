@@ -1,0 +1,1257 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>ルータ基本設定ドリル</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+JP:wght@400;500;700&display=swap">
+<style>
+/* Layout: 課題シート（左）とコンソール（右）を並べる。狭い画面では縦積み。コンソールは両テーマで暗色固定 */
+:root{
+  --bg:#eef2f4; --paper:#ffffff; --ink:#16212b; --muted:#566673; --line:#d3dce2;
+  --cable:#1784b8; --cable-soft:#dcf0f8; --ok:#1d7f47; --ok-soft:#e1f3e8; --ng:#b8402c; --ng-soft:#fbe7e2; --warn:#9a6300;
+  --term-bg:#0b1014; --term-bar:#151d23; --term-edge:#24313a; --term-fg:#d3dde2; --term-dim:#7d8e99;
+  --term-prompt:#7fd0f2; --term-err:#ff8c78; --term-log:#9fb8a8; --term-note:#f2c46b;
+  --f-ui:"IBM Plex Sans JP","Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1519; --paper:#161f25; --ink:#e3eaee; --muted:#93a3ae; --line:#283640;
+  --cable:#5cc2ec; --cable-soft:#12303e; --ok:#55c486; --ok-soft:#143323; --ng:#f07c66; --ng-soft:#3a1d17; --warn:#e2ab43;
+  color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#0f1519; --paper:#161f25; --ink:#e3eaee; --muted:#93a3ae; --line:#283640;
+  --cable:#5cc2ec; --cable-soft:#12303e; --ok:#55c486; --ok-soft:#143323; --ng:#f07c66; --ng-soft:#3a1d17; --warn:#e2ab43;
+  color-scheme:dark; }
+body{ background:var(--bg); color:var(--ink); font-family:var(--f-ui); font-size:14px; line-height:1.6; }
+*{ box-sizing:border-box; }
+.wrap{ max-width:1240px; margin:0 auto; padding-block:20px 48px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); }
+code,.mono{ font-family:var(--f-mono); }
+button{ font:inherit; color:inherit; cursor:pointer; }
+button:focus-visible,select:focus-visible,input:focus-visible,[tabindex]:focus-visible{ outline:2px solid var(--cable); outline-offset:2px; }
+
+/* header */
+.top{ display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px 24px; margin-bottom:16px; }
+.eyebrow{ margin:0; font-size:12px; color:var(--muted); letter-spacing:.06em; }
+h1{ margin:2px 0 0; font-size:26px; font-weight:700; letter-spacing:.02em; text-wrap:balance; }
+h1 .port{ font-family:var(--f-mono); font-weight:500; font-size:15px; color:var(--cable); margin-left:10px; letter-spacing:0; }
+.switch{ display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); cursor:pointer; user-select:none; }
+.switch input{ position:absolute; opacity:0; width:1px; height:1px; }
+.switch .sw{ width:34px; height:20px; border-radius:10px; background:var(--line); position:relative; transition:background .15s; flex:none; }
+.switch .sw::after{ content:""; position:absolute; top:3px; left:3px; width:14px; height:14px; border-radius:50%; background:var(--paper); transition:transform .15s; }
+.switch input:checked + .sw{ background:var(--cable); }
+.switch input:checked + .sw::after{ transform:translateX(14px); }
+.switch input:focus-visible + .sw{ outline:2px solid var(--cable); outline-offset:2px; }
+
+/* tabs */
+.tabs{ display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:20px; overflow-x:auto; }
+.tabs button{ background:none; border:0; padding:10px 14px; font-size:14px; font-weight:500; color:var(--muted); border-bottom:2px solid transparent; margin-bottom:-1px; white-space:nowrap; }
+.tabs button[aria-selected="true"]{ color:var(--ink); border-bottom-color:var(--cable); }
+
+/* exam layout */
+.exam{ display:grid; grid-template-columns:minmax(0,23rem) minmax(0,1fr); gap:20px; align-items:start; }
+.sheet{ background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:16px 18px 18px; position:sticky; top:12px; max-height:calc(100vh - 24px); overflow:auto; min-width:0; }
+.sheet-head{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; padding-bottom:10px; border-bottom:1px dashed var(--line); }
+.sheet-head b{ font-size:15px; }
+.sheet-head span{ font-size:12px; color:var(--muted); }
+.ctrls{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:12px 0; }
+select,.btn{ border:1px solid var(--line); background:var(--paper); border-radius:6px; padding:6px 10px; font-size:13px; color:var(--ink); }
+.btn:hover{ border-color:var(--cable); }
+.btn.primary{ background:var(--cable); border-color:var(--cable); color:#fff; font-weight:500; }
+:root[data-theme="dark"] .btn.primary{ color:#06202c; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .btn.primary{ color:#06202c; } }
+.timer{ font-family:var(--f-mono); font-variant-numeric:tabular-nums; font-size:13px; color:var(--muted); margin-left:auto; }
+.livebox{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
+.pre-note{ font-size:12px; color:var(--muted); margin:6px 0 4px; }
+.items{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; }
+.items li{ display:grid; grid-template-columns:1.8em minmax(0,1fr) 1.4em; gap:4px 6px; padding:6px 0; border-bottom:1px solid var(--line); align-items:start; }
+.items li:last-child{ border-bottom:0; }
+.items .num{ font-size:15px; color:var(--muted); line-height:1.45; }
+.items .txt{ font-size:13.5px; }
+.items .mark{ font-size:13px; font-weight:700; text-align:right; }
+.items li.ok .mark{ color:var(--ok); } .items li.ok .num{ color:var(--ok); }
+.items li.ng .mark{ color:var(--ng); } .items li.ng .num{ color:var(--ng); }
+.items .group{ grid-column:1 / -1; font-size:12px; color:var(--muted); padding-top:2px; }
+.v{ font-family:var(--f-mono); font-size:12.5px; background:var(--cable-soft); padding:0 4px; border-radius:3px; white-space:nowrap; }
+.fix{ grid-column:2 / 4; font-size:12px; color:var(--muted); display:flex; flex-direction:column; gap:2px; }
+.fix code{ color:var(--ink); font-size:12px; overflow-wrap:anywhere; }
+.fix .got{ color:var(--ng); }
+.notes{ margin:12px 0 0; padding:10px 0 0; border-top:1px dashed var(--line); list-style:none; font-size:12px; color:var(--muted); display:flex; flex-direction:column; gap:2px; }
+.result{ margin:4px 0 12px; padding:12px 14px; border-radius:6px; background:var(--cable-soft); }
+.result .score{ font-family:var(--f-mono); font-size:30px; font-weight:600; line-height:1.1; font-variant-numeric:tabular-nums; }
+.result .score small{ font-size:15px; color:var(--muted); font-weight:500; }
+.result ul{ margin:8px 0 0; padding:0; list-style:none; font-size:12.5px; display:flex; flex-direction:column; gap:3px; }
+.result li.bad{ color:var(--ng); } .result li.good{ color:var(--ok); }
+
+/* terminal */
+.console{ min-width:0; display:flex; flex-direction:column; gap:8px; }
+.term{ background:var(--term-bg); color:var(--term-fg); border:1px solid var(--term-edge); border-radius:8px; overflow:hidden; }
+.term-bar{ display:flex; justify-content:space-between; gap:8px; padding:6px 12px; background:var(--term-bar); font-family:var(--f-mono); font-size:11.5px; color:var(--term-dim); }
+.term-bar .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:#5cc2ec; margin-right:7px; vertical-align:0; }
+.t-scroll{ height:clamp(320px, 60vh, 600px); overflow-y:auto; padding:10px 12px; font-family:var(--f-mono); font-size:13.5px; line-height:1.45; cursor:text; }
+.t-scroll.short{ height:clamp(260px, 42vh, 380px); }
+.t-out{ margin:0; white-space:pre-wrap; overflow-wrap:anywhere; font:inherit; }
+.t-out .err{ color:var(--term-err); } .t-out .log{ color:var(--term-log); } .t-out .note{ color:var(--term-note); } .t-out .dim{ color:var(--term-dim); }
+.t-in{ display:flex; flex-wrap:wrap; align-items:baseline; }
+.t-pr{ white-space:pre-wrap; color:var(--term-prompt); overflow-wrap:anywhere; }
+.t-inp{ flex:1 1 8ch; min-width:8ch; background:transparent; border:0; outline:0; color:var(--term-fg); font:inherit; padding:0; caret-color:var(--term-prompt); }
+.t-inp.mask{ color:transparent; }
+.term.busy .t-inp{ caret-color:transparent; }
+@media (pointer:coarse){ .t-scroll{ font-size:13px; } .t-inp{ font-size:16px; } }
+.keybar{ display:flex; flex-wrap:wrap; gap:6px; }
+.keybar button{ font-family:var(--f-mono); font-size:12px; background:var(--paper); border:1px solid var(--line); border-radius:5px; padding:4px 9px; }
+.keybar button:hover{ border-color:var(--cable); }
+.keyhelp{ font-size:12px; color:var(--muted); margin:0; }
+.keyhelp kbd{ font-family:var(--f-mono); font-size:11px; border:1px solid var(--line); border-radius:3px; padding:0 4px; background:var(--paper); }
+.tip{ font-size:12.5px; border:1px solid var(--warn); color:var(--ink); border-radius:6px; padding:8px 10px; background:var(--paper); }
+.tip b{ color:var(--warn); }
+
+/* flash */
+.flash{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); gap:20px; align-items:start; }
+.fcard{ background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:18px; min-width:0; display:flex; flex-direction:column; gap:12px; }
+.fmeta{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+.fnum{ font-size:28px; line-height:1; color:var(--cable); }
+.flabel{ font-weight:700; }
+.fscore{ margin-left:auto; font-family:var(--f-mono); font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.fq{ margin:0; font-size:17px; line-height:1.6; text-wrap:pretty; }
+.fq .v{ font-size:15px; }
+.fctx{ margin:0; font-size:12.5px; color:var(--muted); }
+.fctx code{ color:var(--ink); }
+.factions{ display:flex; gap:8px; flex-wrap:wrap; }
+.fres{ border-radius:6px; padding:12px 14px; display:flex; flex-direction:column; gap:6px; }
+.fres.good{ background:var(--ok-soft); } .fres.bad{ background:var(--ng-soft); }
+.fres .verdict{ font-weight:700; }
+.fres.good .verdict{ color:var(--ok); } .fres.bad .verdict{ color:var(--ng); }
+.fres pre{ margin:0; font-family:var(--f-mono); font-size:12.5px; white-space:pre-wrap; overflow-wrap:anywhere; }
+.fres .why{ font-size:12.5px; }
+.fres .next{ font-size:12px; color:var(--muted); }
+.fstats{ margin-top:24px; }
+.fstats-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+h2{ font-size:16px; margin:0; }
+.stable{ width:100%; border-collapse:collapse; font-size:13px; }
+.tablebox{ overflow-x:auto; background:var(--paper); border:1px solid var(--line); border-radius:8px; }
+.stable th,.stable td{ text-align:left; padding:7px 12px; border-bottom:1px solid var(--line); white-space:nowrap; }
+.stable tr:last-child td{ border-bottom:0; }
+.stable th{ font-size:12px; color:var(--muted); font-weight:500; }
+.stable td.n{ font-family:var(--f-mono); font-variant-numeric:tabular-nums; }
+.bar{ display:inline-block; width:90px; height:6px; border-radius:3px; background:var(--line); vertical-align:middle; margin-right:8px; overflow:hidden; }
+.bar i{ display:block; height:100%; background:var(--cable); }
+.bar.low i{ background:var(--ng); }
+
+/* quiz */
+.quiz{ display:flex; flex-direction:column; gap:24px; max-width:820px; }
+.qcat{ font-size:12px; letter-spacing:.06em; color:var(--cable); font-weight:700; }
+.choices{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.choice{ display:flex; gap:10px; align-items:flex-start; text-align:left; background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:11px 13px; min-width:0; line-height:1.5; }
+.choice:hover:not(:disabled){ border-color:var(--cable); }
+.choice:disabled{ cursor:default; }
+.choice .k{ flex:none; font-family:var(--f-mono); font-size:12px; color:var(--muted); border:1px solid var(--line); border-radius:4px; width:1.6em; text-align:center; line-height:1.5; }
+.choice .ct{ min-width:0; overflow-wrap:anywhere; }
+.choice .ct.cmd{ font-family:var(--f-mono); font-size:13px; }
+.choice.correct{ border-color:var(--ok); background:var(--ok-soft); }
+.choice.correct .k{ border-color:var(--ok); color:var(--ok); }
+.choice.wrong{ border-color:var(--ng); background:var(--ng-soft); }
+.choice.wrong .k{ border-color:var(--ng); color:var(--ng); }
+.choice.dim{ opacity:.6; }
+.fq code{ font-family:var(--f-mono); font-size:15px; background:var(--cable-soft); padding:1px 6px; border-radius:3px; }
+@media (max-width:560px){ .choices{ grid-template-columns:minmax(0,1fr); } }
+
+/* reference */
+.ref{ display:flex; flex-direction:column; gap:28px; }
+.ref section{ display:flex; flex-direction:column; gap:10px; min-width:0; }
+.ref p.lead{ margin:0; color:var(--muted); font-size:13px; max-width:68ch; }
+.modes{ background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:16px; display:flex; flex-direction:column; gap:12px; }
+.mrow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.mbox{ border:1px solid var(--line); border-radius:6px; padding:6px 10px; display:flex; flex-direction:column; min-width:0; }
+.mbox code{ color:var(--cable); font-weight:600; font-size:13px; }
+.mbox span{ font-size:11.5px; color:var(--muted); }
+.marrow{ font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; }
+.marrow code{ color:var(--ink); font-size:12px; background:var(--cable-soft); padding:1px 5px; border-radius:3px; }
+.mback{ margin:0; padding:10px 0 0; border-top:1px dashed var(--line); list-style:none; display:flex; flex-wrap:wrap; gap:6px 20px; font-size:12.5px; color:var(--muted); }
+.mback code{ color:var(--ink); }
+.reftable td{ white-space:normal; vertical-align:top; }
+.reftable td.cmd code{ white-space:nowrap; }
+.reftable td.cmd,.reftable td.abbr,.reftable td.run{ font-family:var(--f-mono); font-size:12.5px; }
+.reftable .ctx{ display:block; color:var(--muted); font-size:11.5px; }
+.hideable{ cursor:pointer; }
+.ref:not(.reveal) .hideable:not(.shown) > *{ filter:blur(5px); user-select:none; }
+.ref:not(.reveal) .hideable:not(.shown)::after{ content:"タップで表示"; font-family:var(--f-ui); font-size:11px; color:var(--muted); display:block; }
+.pits{ margin:0; padding-left:1.4em; display:flex; flex-direction:column; gap:8px; max-width:78ch; }
+.pits code{ font-size:12.5px; background:var(--cable-soft); padding:0 4px; border-radius:3px; }
+.script{ background:var(--term-bg); color:var(--term-fg); border-radius:8px; padding:14px 16px; font-family:var(--f-mono); font-size:13px; line-height:1.55; margin:0; overflow-x:auto; white-space:pre; }
+.script .p{ color:var(--term-prompt); } .script .c{ color:var(--term-dim); }
+
+@media (max-width:880px){
+  .exam,.flash{ grid-template-columns:minmax(0,1fr); }
+  .sheet{ position:static; max-height:none; }
+  .sheet .items{ max-height:42vh; overflow:auto; }
+}
+@media (prefers-reduced-motion: reduce){ *{ transition:none!important; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Cisco IOS ルータ初期設定の練習</p>
+      <h1>ルータ基本設定ドリル<span class="port">ISR4221 · gi 0/0/0</span></h1>
+    </div>
+    <label class="switch" title="hostname を host、conf t を configure terminal と、すべて省略せずに打つ練習"><input type="checkbox" id="strict"><span class="sw"></span><span>省略形を禁止（Tab 補完も無効）</span></label>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="exam" aria-selected="true">通し練習</button>
+    <button role="tab" data-tab="flash" aria-selected="false">一問一答</button>
+    <button role="tab" data-tab="quiz" aria-selected="false">四択</button>
+    <button role="tab" data-tab="ref" aria-selected="false">早見表</button>
+  </nav>
+
+  <!-- 通し練習 -->
+  <section id="tab-exam" class="panel">
+    <div class="exam">
+      <aside class="sheet">
+        <div class="sheet-head"><b id="sheetTitle">練習問題１</b></div>
+        <div class="ctrls">
+          <select id="prob" aria-label="問題">
+            <option value="0">練習問題１</option>
+            <option value="1">練習問題２</option>
+            <option value="2">練習問題３</option>
+            <option value="r">ランダム（値を毎回変える）</option>
+          </select>
+          <button class="btn" id="restart">最初から</button>
+          <span class="timer" id="timer">00:00</span>
+        </div>
+        <div class="ctrls">
+          <label class="livebox"><input type="checkbox" id="live">途中の判定を表示</label>
+          <label class="livebox"><input type="checkbox" id="withTp">transport input telnet も採点</label>
+          <button class="btn primary" id="gradeBtn" style="margin-left:auto">採点する</button>
+        </div>
+        <div class="result" id="result" hidden></div>
+        <p class="pre-note" id="preNote"></p>
+        <ul class="items" id="items"></ul>
+        <ul class="notes">
+          <li>※ <code>service password-encryption</code> は使わない</li>
+          <li>※ 設定の順序は自由</li>
+          <li>※ 設定後に running-config で内容を確認する</li>
+          <li>※ 最後に running-config を表示してから「採点する」を押す</li>
+        </ul>
+      </aside>
+      <div class="console">
+        <div class="term" id="term1">
+          <div class="term-bar"><span><span class="dot"></span>COM3 - Tera Term VT</span><span>9600 8N1</span></div>
+          <div class="t-scroll"><pre class="t-out"></pre><div class="t-in"><span class="t-pr"></span><input class="t-inp" id="inp1" aria-label="コマンド入力" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div></div>
+        </div>
+        <div class="keybar" data-for="1">
+          <button data-k="tab">Tab</button><button data-k="up">↑</button><button data-k="down">↓</button><button data-k="z">Ctrl+Z</button><button data-k="c">Ctrl+C</button><button data-k="skip" id="skipBtn">起動をスキップ</button>
+        </div>
+        <p class="keyhelp"><kbd>Tab</kbd> 補完　<kbd>↑</kbd><kbd>↓</kbd> 履歴　<kbd>Ctrl+Z</kbd> 設定モード終了　<kbd>Ctrl+C</kbd> ダイアログ中断　<kbd>--More--</kbd> 中は <kbd>Space</kbd> 次ページ・<kbd>Enter</kbd> 1行・他のキーで中断</p>
+        <div class="tip" id="tip" hidden><b>名前解決で待たされています。</b> 打ち間違えた単語をホスト名とみなして DNS に問い合わせています（実機では長いと数十秒）。⑤ <code>no ip domain-lookup</code> を先に入れておくと、この待ちが出なくなります。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 一問一答 -->
+  <section id="tab-flash" class="panel" hidden>
+    <div class="flash">
+      <div class="fcard">
+        <div class="fmeta"><span class="fnum" id="fnum">②</span><span class="flabel" id="flabel"></span><span class="fscore" id="fscore">今回 0 / 0</span></div>
+        <p class="fq" id="fq"></p>
+        <p class="fctx" id="fctx"></p>
+        <div class="factions"><button class="btn" id="freveal">答えを見る</button><button class="btn primary" id="fnext">次の問題</button></div>
+        <div class="fres" id="fres" hidden></div>
+      </div>
+      <div class="console">
+        <div class="term" id="term2">
+          <div class="term-bar"><span><span class="dot"></span>COM3 - Tera Term VT</span><span>9600 8N1</span></div>
+          <div class="t-scroll short"><pre class="t-out"></pre><div class="t-in"><span class="t-pr"></span><input class="t-inp" id="inp2" aria-label="コマンド入力" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div></div>
+        </div>
+        <div class="keybar" data-for="2">
+          <button data-k="tab">Tab</button><button data-k="up">↑</button><button data-k="down">↓</button><button data-k="z">Ctrl+Z</button><button data-k="c">Ctrl+C</button>
+        </div>
+        <p class="keyhelp">設定が正しく反映された時点で正解。エラー3回か、別の場所に設定すると不正解。正解後は空の <kbd>Enter</kbd> で次へ。</p>
+      </div>
+    </div>
+    <div class="fstats">
+      <div class="fstats-head"><h2>項目別の記録</h2><button class="btn" id="fresetStats">記録を消す</button></div>
+      <p class="keyhelp" style="margin-bottom:8px">一発正解率が低い項目ほど出題されやすくなります。記録はこのブラウザにだけ保存されます。</p>
+      <div class="tablebox"><table class="stable" id="ftable"></table></div>
+    </div>
+  </section>
+
+  <!-- 四択 -->
+  <section id="tab-quiz" class="panel" hidden>
+    <div class="quiz">
+      <div class="fcard">
+        <div class="fmeta"><span class="qcat" id="qcat"></span><span class="fscore" id="qscore">今回 0 / 0</span></div>
+        <p class="fq" id="qq"></p>
+        <div class="choices" id="qchoices"></div>
+        <div class="fres" id="qres" hidden></div>
+        <div class="factions"><button class="btn primary" id="qnext">次の問題</button><span class="keyhelp">キーボードなら <kbd>1</kbd>〜<kbd>4</kbd> で回答、<kbd>Enter</kbd> で次へ</span></div>
+      </div>
+      <div class="fstats" style="margin-top:0">
+        <div class="fstats-head"><h2>種類別の記録</h2><button class="btn" id="qresetStats">記録を消す</button></div>
+        <p class="keyhelp" style="margin-bottom:8px">間違えた問題ほど出題されやすくなります。</p>
+        <div class="tablebox"><table class="stable" id="qtable"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 早見表 -->
+  <section id="tab-ref" class="panel" hidden>
+    <div class="ref" id="ref">
+      <section>
+        <h2>モードの移り方</h2>
+        <div class="modes">
+          <div class="mrow">
+            <div class="mbox"><code>Router&gt;</code><span>ユーザEXEC</span></div>
+            <div class="marrow"><code>enable</code>→</div>
+            <div class="mbox"><code>Router#</code><span>特権EXEC</span></div>
+            <div class="marrow"><code>configure terminal</code>→</div>
+            <div class="mbox"><code>Router(config)#</code><span>グローバル設定</span></div>
+          </div>
+          <div class="mrow">
+            <div class="mbox"><code>(config)#</code><span>グローバル設定</span></div>
+            <div class="marrow"><code>line console 0</code>/<code>line vty 0 4</code>→</div>
+            <div class="mbox"><code>(config-line)#</code><span>ライン設定（コンソールか VTY かはプロンプトで区別できない）</span></div>
+          </div>
+          <div class="mrow">
+            <div class="mbox"><code>(config)#</code><span>グローバル設定</span></div>
+            <div class="marrow"><code>interface gigabitethernet 0/0/0</code>→</div>
+            <div class="mbox"><code>(config-if)#</code><span>インタフェース設定</span></div>
+          </div>
+          <ul class="mback">
+            <li><code>exit</code> 1つ上のモードへ</li>
+            <li><code>end</code> / <code>Ctrl+Z</code> 設定モードのどこからでも <code>#</code> へ</li>
+            <li><code>disable</code> <code>#</code> から <code>&gt;</code> へ</li>
+            <li>サブモード中でもグローバル設定のコマンドはそのまま打てる（自動で <code>(config)#</code> に戻る）</li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <div class="fstats-head"><h2>項目とコマンド（値は練習問題１）</h2><label class="livebox"><input type="checkbox" id="revealAll">すべて表示</label></div>
+        <p class="lead">コマンド列は伏せてあります。思い出してからタップして確認してください。</p>
+        <div class="tablebox"><table class="stable reftable" id="reftable"></table></div>
+      </section>
+
+      <section>
+        <h2>落としやすい点</h2>
+        <ol class="pits">
+          <li>特権パスワードは 2 種類ある。<code>enable secret</code> はハッシュ化して保存され、<code>enable password</code> は平文で保存される。両方あると <code>enable</code> 時に求められるのは secret の方。</li>
+          <li><code>service password-encryption</code> を打つと既存のパスワードが <code>7 xxxx</code> 形式に変わり、<code>no service password-encryption</code> で戻しても平文には戻らない（パスワードの再入力が必要）。</li>
+          <li>パスワード認証を有効にするのは <code>login</code>。<code>password</code> だけでは認証は掛からない。コンソールと VTY の両方で、2つ1組。</li>
+          <li><code>no shutdown</code> を忘れると show run のインタフェースに <code>shutdown</code> 行が残る。ケーブル未接続なら状態は down のままで正常（administratively down でなければ有効化はできている）。</li>
+          <li>現在の設定は running-config。設定モードのままなら <code>do show running-config</code>。startup-config は保存済みの設定で別物。</li>
+          <li>説明文・バナー・パスワード・ホスト名は大文字小文字を区別する。<code>Authorized-Access</code> のハイフンも指示どおりに打つ。</li>
+          <li><code>banner motd</code> の区切り文字（<code>#</code> など）は本文に出てこない文字を使う。閉じ忘れると複数行入力モードになるので、もう一度 <code>#</code> を打てば終わる。</li>
+          <li>名前解決を無効化する前に打ち間違えると <code>Translating...</code> で待たされる。⑤ は早めに入れておくと楽。</li>
+          <li><code>transport input telnet</code> は、VTY でどのプロトコルの接続を受け付けるかの指定。機器の既定値によっては Telnet が通らないことがある。採点の対象にするかは画面のチェックで選べる。</li>
+          <li>VTY の範囲は <code>line vty 0 4</code>。機種によっては <code>0 15</code> まで指定できるので、指示された範囲に合わせる。</li>
+        </ol>
+      </section>
+
+      <section>
+        <div class="fstats-head"><h2>手順の例（練習問題１）</h2><button class="btn" id="scriptToggle">表示する</button></div>
+        <pre class="script" id="script" hidden></pre>
+      </section>
+    </div>
+  </section>
+</div>
+
+<script id="engine">
+"use strict";
+/* ================= IOS 風コマンドエンジン ================= */
+const IFACES=['0/0/0','0/0/1'];
+const pad2=n=>String(n).padStart(2,'0');
+function logStamp(){ const d=new Date(); const mon=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+  return `*${mon} ${String(d.getDate()).padStart(2,' ')} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3,'0')}`; }
+function tokenize(s){ const out=[]; const re=/\S+/g; let m; while((m=re.exec(s))) out.push({s:m[0],i:m.index}); return out; }
+function parseIp(s){ const m=/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(s); if(!m) return null; const p=m.slice(1).map(Number); if(p.some(x=>x>255)) return null; return ((p[0]*16777216)+(p[1]<<16)+(p[2]<<8)+p[3])>>>0; }
+function fmtIp(n){ return [n>>>24,(n>>>16)&255,(n>>>8)&255,n&255].join('.'); }
+function maskOk(n){ const inv=(~n)>>>0; return ((inv+1)&inv)===0; }
+const hex8=n=>(n>>>0).toString(16).toUpperCase().padStart(8,'0');
+const XLAT="dsfd;kfoA,.iyewrkldJKDHSUBsgvca69834ncxv9873254k;fg87";
+function type7(pw){ const seed=Math.floor(Math.random()*16); let o=pad2(seed); for(let i=0;i<pw.length;i++) o+=((pw.charCodeAt(i)^XLAT.charCodeAt((seed+i)%XLAT.length))).toString(16).toUpperCase().padStart(2,'0'); return o; }
+const B64='./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+function fakeHash(pw){ const salt=Array.from({length:4},()=>B64[Math.floor(Math.random()*64)]).join(''); let h=2166136261, s='';
+  for(let i=0;i<22;i++){ for(const ch of pw+salt+i){ h^=ch.charCodeAt(0); h=Math.imul(h,16777619)>>>0; } s+=B64[h%64]; } return `$1$${salt}$${s}`; }
+
+/* --- 構文木 --- */
+function N(o={}){ return {kids:o.kids||[], arg:o.arg||null, run:o.run||null, decoys:o.decoys||[]}; }
+function K(k,node){ return {k,node}; }
+function A(type,name,node,ex={}){ return Object.assign({type,name,node},ex); }
+const END=run=>N({run});
+
+const showIp=N({kids:[K('interface',N({run:'cmdShowIpInt',kids:[K('brief',END('cmdShowIpIntBr'))],decoys:['dampening','gigabitethernet']}))],
+  decoys:['access-lists','accounting','alias','arp','bgp','cache','cef','dhcp','eigrp','http','igmp','mroute','nat','nhrp','ospf','pim','policy','protocols','rip','route','sla','ssh','traffic','vrf']});
+const showDecoys=['aaa','arp','cdp','clock','crypto','dot1x','flash:','history','hosts','interfaces','inventory','license','line','logging','platform','privilege','sessions','snmp','ssh','tcp','users','version','vrf'];
+const showUser=N({kids:[K('ip',showIp)],decoys:showDecoys});
+const showPriv=N({kids:[K('ip',showIp),K('running-config',N({run:'cmdShowRun',decoys:['all','brief','interface','linenum','partition','view']})),K('startup-config',END('cmdShowStart'))],
+  decoys:showDecoys.concat(['archive','boot','controllers','debugging','environment','file','memory','processes','redundancy','reload','rmon','route-map','sdm','spanning-tree','stacks','standby','tech-support','vlan'])});
+const termT=N({kids:[K('length',N({arg:A('num','n',END('cmdTermLen'),{min:0,max:512})}))],decoys:['editing','escape-character','exec','history','international','ip','keymap-type','monitor','no','width']});
+const TREES={};
+TREES.user=N({kids:[K('enable',END('cmdEnable')),K('exit',END('cmdLogout')),K('logout',END('cmdLogout')),K('show',showUser),K('terminal',termT)],
+  decoys:['connect','disable','lock','login','mrinfo','mstat','mtrace','name-connection','ping','ppp','resume','rlogin','set','slip','ssh','systat','telnet','traceroute','tunnel','where']});
+const copyDecoys=['bootflash:','flash:','ftp:','http:','https:','null:','nvram:','rcp:','scp:','system:','tftp:'];
+TREES.priv=N({kids:[
+  K('configure',N({run:'cmdConfigure',kids:[K('terminal',END('cmdConfT'))],decoys:['confirm','memory','network','overwrite-network','replace','revert']})),
+  K('copy',N({kids:[K('running-config',N({kids:[K('startup-config',END('cmdCopy'))],decoys:copyDecoys}))],decoys:copyDecoys.concat(['startup-config'])})),
+  K('disable',END('cmdDisable')),K('enable',END('cmdEnable')),K('exit',END('cmdLogout')),K('logout',END('cmdLogout')),
+  K('show',showPriv),K('terminal',termT),
+  K('write',N({run:'cmdWrite',kids:[K('memory',END('cmdWrite'))],decoys:['erase','network','terminal']}))],
+  decoys:['archive','auto','cd','clear','clock','connect','debug','delete','dir','erase','format','lock','mkdir','more','ping','reload','rename','rmdir','send','setup','ssh','telnet','test','traceroute','undebug','upgrade','verify']});
+
+const cfgDecoys=['aaa','access-list','alias','archive','bba-group','bfd','boot','bridge','call-home','cdp','class-map','clock','control-plane','crypto','default','dial-peer','errdisable','event','file','hw-module','ipv6','key','license','logging','login','mac','monitor','ntp','object-group','platform','policy-map','privilege','redundancy','router','snmp-server','spanning-tree','username','vrf'];
+const ipDecoys=['access-list','admission','arp','as-path','cef','community-list','default-gateway','dhcp','dns','finger','forward-protocol','ftp','host','http','icmp','local','multicast-routing','name-server','nat','options','prefix-list','route','routing','scp','sla','source-route','ssh','subnet-zero','tcp','tftp','vrf'];
+const ipCfg=run=>N({kids:[K('domain-lookup',END(run)),K('domain',N({kids:[K('lookup',END(run))],decoys:['list','name','retry','timeout']}))],decoys:ipDecoys});
+const bannerDecoys=['config-save','exec','incoming','login','prompt-timeout','slip-ppp'];
+const enDecoys=['algorithm-type','last-resort','use-tacacs'];
+const svcDecoys=['call-home','compress-config','config','counters','dhcp','internal','nagle','pad','private-config','prompt','sequence-numbers','slave-log','tcp-keepalives-in','tcp-keepalives-out','tcp-small-servers','telnet-zeroidle','timestamps','udp-small-servers'];
+TREES.config=N({kids:[
+  K('banner',N({kids:[K('motd',N({arg:A('rest','text',END('cmdBanner'))}))],decoys:bannerDecoys})),
+  K('enable',N({kids:[K('secret',N({arg:A('rest','v',END('cmdSecret'))})),K('password',N({arg:A('rest','v',END('cmdEnPw'))}))],decoys:enDecoys})),
+  K('end',END('cmdEnd')),K('exit',END('cmdExitCfg')),
+  K('hostname',N({arg:A('word','name',END('cmdHostname'))})),
+  K('interface',N({arg:A('iface','name',END('cmdIface'))})),
+  K('ip',ipCfg('cmdDomOn')),
+  K('line',N({kids:[K('console',N({arg:A('num','a',END('cmdLineCon'),{min:0,max:0})})),
+    K('vty',N({arg:A('num','a',N({run:'cmdLineVty',arg:A('num','b',END('cmdLineVty'),{min:0,max:15})}),{min:0,max:15})}))],decoys:['aux']})),
+  K('no',N({kids:[
+    K('banner',N({kids:[K('motd',END('cmdNoBanner'))],decoys:bannerDecoys})),
+    K('enable',N({kids:[K('secret',N({run:'cmdNoSecret',arg:A('rest','x',END('cmdNoSecret'))})),K('password',N({run:'cmdNoEnPw',arg:A('rest','x',END('cmdNoEnPw'))}))],decoys:enDecoys})),
+    K('hostname',N({run:'cmdNoHostname',arg:A('rest','x',END('cmdNoHostname'))})),
+    K('ip',ipCfg('cmdDomOff')),
+    K('service',N({kids:[K('password-encryption',END('cmdNoSpe'))],decoys:svcDecoys}))],decoys:cfgDecoys})),
+  K('service',N({kids:[K('password-encryption',END('cmdSpe'))],decoys:svcDecoys}))],
+  decoys:cfgDecoys});
+
+const lineDecoys=['absolute-timeout','access-class','activation-character','autocommand','autohangup','autoselect','databits','default','disconnect-character','escape-character','exec','exec-banner','exec-character-bits','flowcontrol','full-help','history','length','location','modem','motd-banner','notify','parity','privilege','refuse-message','rotary','session-timeout','speed','stopbits','terminal-type','vacant-message','width'];
+TREES.line=N({kids:[
+  K('end',END('cmdEnd')),K('exit',END('cmdExitSub')),
+  K('exec-timeout',N({arg:A('num','m',N({run:'cmdExecTo',arg:A('num','s',END('cmdExecTo'),{min:0,max:2147483})}),{min:0,max:35791})})),
+  K('logging',N({kids:[K('synchronous',N({run:'cmdLogSync',decoys:['level','limit']}))]})),
+  K('login',N({run:'cmdLogin',decoys:['authentication','local']})),
+  K('transport',N({kids:[K('input',N({arg:A('rest','v',END('cmdTransport'))}))],decoys:['output','preferred']})),
+  K('password',N({arg:A('rest','v',END('cmdLinePw'))})),
+  K('no',N({kids:[K('exec-timeout',N({run:'cmdNoExecTo',arg:A('rest','x',END('cmdNoExecTo'))})),K('logging',N({kids:[K('synchronous',END('cmdNoLogSync'))]})),
+    K('login',END('cmdNoLogin')),K('transport',N({kids:[K('input',N({run:'cmdNoTransport',arg:A('rest','x',END('cmdNoTransport'))}))],decoys:['output','preferred']})),K('password',N({run:'cmdNoLinePw',arg:A('rest','x',END('cmdNoLinePw'))}))],decoys:lineDecoys}))],
+  decoys:lineDecoys});
+const ifDecoys=['arp','bandwidth','carrier-delay','cdp','channel-group','crypto','dampening','default','delay','duplex','encapsulation','hold-queue','ipv6','keepalive','load-interval','logging','mac-address','media-type','mtu','negotiation','service-policy','speed','standby','vrf'];
+const ifIpDecoys=['access-group','dhcp','helper-address','mtu','nat','ospf','proxy-arp','redirects','tcp','unreachables','verify','virtual-reassembly'];
+TREES.if=N({kids:[
+  K('description',N({arg:A('rest','text',END('cmdDesc'))})),
+  K('end',END('cmdEnd')),K('exit',END('cmdExitSub')),
+  K('ip',N({kids:[K('address',N({arg:A('ip','ip',N({arg:A('ip','mask',N({run:'cmdIpAddr',decoys:['secondary']}))}))}))],decoys:ifIpDecoys})),
+  K('shutdown',END('cmdShut')),
+  K('no',N({kids:[K('description',N({run:'cmdNoDesc',arg:A('rest','x',END('cmdNoDesc'))})),
+    K('ip',N({kids:[K('address',N({run:'cmdNoIpAddr',arg:A('rest','x',END('cmdNoIpAddr'))}))],decoys:ifIpDecoys})),
+    K('shutdown',END('cmdNoShut'))],decoys:ifDecoys}))],
+  decoys:ifDecoys});
+
+const IF_TYPES=['async','bdi','dialer','gigabitethernet','lisp','loopback','null','port-channel','service-engine','tunnel','virtual-template','vlan'];
+function parseIface(s,strict){
+  const m=/^([a-z-]+)\s*(\d+(?:\/\d+){0,2})$/i.exec(s.trim()); if(!m) return {err:'invalid'};
+  const ty=m[1].toLowerCase();
+  if(strict && ty!=='gigabitethernet') return 'gigabitethernet'.startsWith(ty)?{err:'abbrev',full:'GigabitEthernet'}:{err:'invalid'};
+  const c=IF_TYPES.filter(t=>t.startsWith(ty)); if(!c.length) return {err:'invalid'};
+  if(c.length>1 && !IF_TYPES.includes(ty)) return {err:'ambiguous'};
+  if(c[0]!=='gigabitethernet') return {err:'unsupported'};
+  if(!IFACES.includes(m[2])) return {err:'invalid'};
+  return {name:m[2]};
+}
+function parse(tree,line,strict){
+  const toks=tokenize(line); let node=tree; const args={}; let ti=0;
+  while(ti<toks.length){
+    const t=toks[ti], low=t.s.toLowerCase();
+    const exact=node.kids.find(k=>k.k===low);
+    if(exact){ node=exact.node; ti++; continue; }
+    if(node.decoys.includes(low)) return {err:'unsupported',pos:t.i};
+    const km=node.kids.filter(k=>k.k.startsWith(low)), dm=node.decoys.filter(d=>d.startsWith(low));
+    if(km.length+dm.length>1) return {err:'ambiguous'};
+    if(km.length===1){ if(strict) return {err:'abbrev',pos:t.i,full:km[0].k}; node=km[0].node; ti++; continue; }
+    if(dm.length===1) return {err:'unsupported',pos:t.i};
+    if(node.arg){
+      const a=node.arg;
+      if(a.type==='rest'||a.type==='iface'){
+        let val=line.slice(t.i).replace(/\s+$/,'');
+        if(a.type==='iface'){ const r=parseIface(val,strict); if(r.err) return Object.assign({pos:t.i},r); val=r.name; }
+        args[a.name]=val; node=a.node; ti=toks.length; continue;
+      }
+      if(a.type==='num' && (!/^\d+$/.test(t.s) || +t.s<a.min || +t.s>a.max)) return {err:'invalid',pos:t.i};
+      if(a.type==='ip' && parseIp(t.s)===null) return {err:'invalid',pos:t.i};
+      args[a.name]=t.s; node=a.node; ti++; continue;
+    }
+    return {err:'invalid',pos:t.i};
+  }
+  if(!node.run) return {err:'incomplete'};
+  return {run:node.run,args};
+}
+
+const newLine=()=>({pw:null,login:false,et:null,ls:false,ti:null});
+function newConfig(){ return {hostname:'Router',secret:null,enpw:null,domainLookup:true,spe:false,con:newLine(),vty:newLine(),vty2:null,
+  ifs:Object.fromEntries(IFACES.map(n=>[n,{ip:null,mask:null,shut:true,desc:null}])),banner:null,saved:null}; }
+
+const BOOT=['Initializing Hardware ...','','System integrity status: 0x610','Rom image verified correctly','',
+ 'Last reset cause: PowerOn',
+ 'ISR4221/K9 platform with 4194304 Kbytes of main memory','','Located isr4200-universalk9_ias.16.09.04.SPA.bin',
+ '#####################################################################','','Package header rev 3 structure detected','Image validated','',
+ 'Cisco IOS XE Software, Version 16.09.04','','cisco ISR4221/K9 (1RU) processor with 1784656K/6147K bytes of memory.',
+ 'Processor board ID FGL0000XXXX','2 Gigabit Ethernet interfaces','32768K bytes of non-volatile configuration memory.',
+ '4194304K bytes of physical memory.','6598655K bytes of flash memory at bootflash:.','','',
+ '         --- System Configuration Dialog ---',''];
+
+class Sim{
+  constructor(term,strictFn){ this.t=term; term.sim=this; this.strictFn=strictFn||(()=>false); this.timers=[]; this.onAfter=null; this.onLookup=null; this.reset(); }
+  strict(){ return !!this.strictFn(); }
+  reset(){
+    this.timers.forEach(clearTimeout); this.timers=[];
+    this.cfg=newConfig(); this.mode='user'; this.sub={}; this.pending=null; this.moreQ=null; this.pageLen=24;
+    this.flags={dialog:null,lastShowRun:false,speEver:false,last:null}; this.stats={cmds:0,errs:0};
+    this.busy=false; this.booting=false; this.t.clear(); this.t.setBusy(false); this.refresh();
+  }
+  later(fn,ms){ const id=setTimeout(()=>{ this.timers=this.timers.filter(x=>x!==id); fn(); },ms); this.timers.push(id); }
+  get h(){ return this.cfg.hostname; }
+  get inCfg(){ return this.mode==='config'||this.mode==='line'||this.mode==='if'; }
+  prompt(){ const h=this.h; return {user:h+'>',priv:h+'#',config:h+'(config)#',line:h+'(config-line)#',if:h+'(config-if)#'}[this.mode]; }
+  refresh(){ const t=this.t; if(this.busy){ t.setPrompt(''); t.setMask(false); t.setBusy(true); return; } t.setBusy(false);
+    if(this.pending){ t.setPrompt(this.pending.prompt); t.setMask(!!this.pending.mask); } else { t.setPrompt(this.prompt()); t.setMask(false); } }
+  after(){ this.refresh(); if(this.onAfter) this.onAfter(); }
+  print(s,c){ this.t.print(s,c); }
+  note(s){ this.t.print(s,'note'); }
+  err(s){ this.t.print(s,'err'); this.stats.errs++; }
+  ask(prompt,fn,o={}){ this.pending=Object.assign({prompt,fn},o); }
+
+  submit(raw){
+    if(this.busy) return;
+    const p=this.pending;
+    if(p){
+      if(p.type==='more'){ this.moreKey('Enter'); return; }
+      this.pending=null; this.print(p.prompt+(p.mask?'':raw)); p.fn(raw); this.after(); return;
+    }
+    const pr=this.prompt(); this.print(pr+raw);
+    if(raw.trim()){ this.stats.cmds++; this.flags.lastShowRun=false; this.exec(raw,pr); }
+    this.after();
+  }
+  exec(raw,pr){
+    const line=raw.replace(/\s+$/,'');
+    if(/\?$/.test(line)){ this.note('% このドリルでは ? ヘルプは使えません（実機では使えます）'); return; }
+    const strict=this.strict(); let m;
+    if(this.inCfg && (m=/^(\s*do)(\s+(\S.*))?$/i.exec(line))){
+      if(!m[3]){ this.err('% Incomplete command.'); return; }
+      const off=line.length-m[3].length; const r=parse(TREES.priv,m[3],strict);
+      if(r.err){ if(r.pos!==undefined) r.pos+=off; return this.reportErr(r,pr,line); }
+      if(!['cmdShowRun','cmdShowStart','cmdShowIpIntBr','cmdShowIpInt','cmdCopy','cmdWrite','cmdTermLen'].includes(r.run)){ return this.reportErr({err:'invalid',pos:off},pr,line); }
+      this.flags.last=r.run; this[r.run](r.args,line); return;
+    }
+    let r=parse(TREES[this.mode],line,strict);
+    if(r.err && (this.mode==='line'||this.mode==='if')){
+      const r2=parse(TREES.config,line,strict);
+      if(!r2.err){ this.mode='config'; this.sub={}; r=r2; }
+    }
+    if(r.err){
+      if((this.mode==='user'||this.mode==='priv') && r.err==='invalid' && r.pos===0){
+        const toks=tokenize(line); if(toks.length===1) return this.nameLookup(toks[0].s);
+        r.pos=toks[1].i;
+      }
+      return this.reportErr(r,pr,line);
+    }
+    this.flags.last=r.run; this[r.run](r.args,line);
+  }
+  reportErr(r,pr,line){
+    if(r.pos!==undefined && ['invalid','unsupported','abbrev'].includes(r.err)) this.print(' '.repeat(pr.length+r.pos)+'^','err');
+    if(r.err==='invalid') this.err("% Invalid input detected at '^' marker.");
+    else if(r.err==='ambiguous') this.err(`% Ambiguous command:  "${line.trim()}"`);
+    else if(r.err==='incomplete') this.err('% Incomplete command.');
+    else if(r.err==='unsupported'){ this.stats.errs++; this.note('% このドリルでは扱わないコマンドです'); }
+    else if(r.err==='abbrev'){ this.stats.errs++; this.note(`% 省略形禁止モード: ${r.full} と最後まで入力してください`); }
+  }
+  nameLookup(tok){
+    if(!this.cfg.domainLookup){ this.err('% Unknown command or computer name, or unable to find computer address'); return; }
+    this.print(`Translating "${tok}"...domain server (255.255.255.255)`);
+    this.busy=true; if(this.onLookup) this.onLookup();
+    this.later(()=>{ this.busy=false; this.err('% Unknown command or computer name, or unable to find computer address'); this.after(); },2600);
+  }
+
+  /* ---- 起動とダイアログ ---- */
+  boot(){
+    this.busy=true; this.booting=true; this.skip=false; this.refresh(); let i=0;
+    this._step=()=>{
+      if(this.skip){ this.t.printLines(BOOT.slice(i)); i=BOOT.length; }
+      if(i<BOOT.length){ const l=BOOT[i++]; this.print(l); this.later(this._step,l.startsWith('#')?700:45); return; }
+      this.busy=false; this.booting=false; this.askDialog(); this.after();
+    };
+    this._step();
+  }
+  skipBoot(){ if(!this.booting) return; this.timers.forEach(clearTimeout); this.timers=[]; this.skip=true; this._step(); }
+  dialogOnly(){ this.print('         --- System Configuration Dialog ---'); this.print(''); this.askDialog(); this.refresh(); }
+  askDialog(){ this.ask('Would you like to enter the initial configuration dialog? [yes/no]: ',v=>{
+    const a=v.trim().toLowerCase();
+    if(a==='no'||a==='n'){ if(this.flags.dialog==null) this.flags.dialog='no'; this.print(''); this.ask('Would you like to terminate autoinstall? [yes]: ',()=>this.pressReturn()); }
+    else if(a==='yes'||a==='y'){ this.flags.dialog='yes'; this.setupIntro(); }
+    else { this.print("% Please answer 'yes' or 'no'."); this.askDialog(); }
+  },{kind:'dialog'}); }
+  setupIntro(){
+    this.t.printLines(['',"At any point you may enter a question mark '?' for help.",'Use ctrl-c to abort configuration dialog at any prompt.',"Default settings are in square brackets '[]'.",'',
+      'Basic management setup configures only enough connectivity','for management of the system, extended setup will ask you','to configure each interface on the system','']);
+    this.askSetup();
+  }
+  askSetup(){ this.ask('Would you like to enter basic management setup? [yes/no]: ',()=>{ this.note('% このドリルではセットアップを進めません。Ctrl+C で中断してください（通常は最初の質問に no）'); this.askSetup(); },{kind:'setup'}); }
+  pressReturn(){ this.print(''); this.print('Press RETURN to get started!'); this.print(''); this.ask('',()=>{ this.mode='user'; },{kind:'press'}); }
+  ctrlC(){
+    if(this.busy) return; const p=this.pending;
+    if(p && (p.kind==='dialog'||p.kind==='setup')){ this.pending=null; this.print(p.prompt+'^C'); if(this.flags.dialog==null) this.flags.dialog='ctrlc';
+      this.print('Configuration aborted, no changes made.'); this.pressReturn(); this.after(); return; }
+    if(!p){ this.print(this.prompt()+'^C'); this.after(); }
+  }
+  ctrlZ(){ if(this.busy||this.pending||!this.inCfg) return; this.print(this.prompt()+'^Z'); this.stats.cmds++; this.flags.lastShowRun=false; this.flags.last='cmdEnd'; this.cmdEnd(); this.after(); }
+
+  /* ---- ページャ ---- */
+  page(text){
+    const lines=text.split('\n'); const per=this.pageLen>0?this.pageLen-1:Infinity;
+    if(lines.length<=per){ this.t.printLines(lines); return; }
+    this.t.printLines(lines.slice(0,per)); this.moreQ=lines.slice(per); this.pending={type:'more',prompt:' --More-- '};
+  }
+  moreKey(k){
+    if(!this.moreQ) return;
+    if(k===' ') this.t.printLines(this.moreQ.splice(0,this.pageLen-1));
+    else if(k==='Enter') this.print(this.moreQ.shift());
+    else this.moreQ=[];
+    if(!this.moreQ.length){ this.moreQ=null; this.pending=null; }
+    this.after();
+  }
+
+  /* ---- EXEC ---- */
+  cmdEnable(){ if(this.mode==='priv') return; const c=this.cfg; if(!c.secret&&!c.enpw){ this.mode='priv'; return; } this.askEnable(0); }
+  askEnable(n){ this.ask('Password: ',v=>{ const c=this.cfg; const ok=c.secret?v===c.secret.v:v===c.enpw.v;
+    if(ok){ this.mode='priv'; return; } if(n+1>=3){ this.err(c.secret?'% Bad secrets':'% Bad passwords'); return; } this.askEnable(n+1); },{mask:true}); }
+  cmdDisable(){ this.mode='user'; }
+  cmdLogout(){ this.mode='user'; this.sub={}; this.t.printLines(['',`${this.h} con0 is now available`,'','','','Press RETURN to get started.','']); this.ask('',()=>this.loginFlow(),{kind:'press'}); }
+  loginFlow(){ const c=this.cfg; if(c.banner!=null){ this.print(''); this.print(c.banner); }
+    if(c.con.login&&c.con.pw){ this.t.printLines(['','User Access Verification','']); this.askLogin(0); } }
+  askLogin(n){ this.ask('Password: ',v=>{ if(v===this.cfg.con.pw.v) return; if(n+1>=3){ this.err('% Bad passwords'); this.print(''); this.ask('',()=>this.loginFlow(),{kind:'press'}); return; } this.askLogin(n+1); },{mask:true}); }
+  cmdConfigure(){ this.ask('Configuring from terminal, memory, or network [terminal]? ',v=>{ const a=v.trim().toLowerCase(); if(a===''||'terminal'.startsWith(a)) this.cmdConfT(); else this.note('% このドリルでは terminal のみ対応'); }); }
+  cmdConfT(){ this.print('Enter configuration commands, one per line.  End with CNTL/Z.'); this.mode='config'; }
+  cmdShowRun(){ this.flags.lastShowRun=true; const b=this.body(); this.page(`Building configuration...\n\nCurrent configuration : ${b.length+12} bytes\n${b}`); }
+  cmdShowStart(){ const s=this.cfg.saved; if(!s){ this.print('startup-config is not present'); return; } this.page(`Using ${s.length} out of 33554432 bytes\n${s}`); }
+  cmdShowIpInt(){ this.note('% このドリルでは show ip interface brief のみ対応'); }
+  cmdShowIpIntBr(){
+    const L=['Interface              IP-Address      OK? Method Status                Protocol'];
+    for(const n of IFACES){ const i=this.cfg.ifs[n];
+      L.push(('GigabitEthernet'+n).padEnd(23)+(i.ip||'unassigned').padEnd(16)+'YES '+(i.ip?'manual':'unset ').padEnd(7)+(i.shut?'administratively down':'down').padEnd(22)+'down'); }
+    this.t.printLines(L);
+  }
+  save(){ this.print('Building configuration...'); this.print('[OK]'); this.cfg.saved=this.body(); }
+  cmdCopy(){ this.ask('Destination filename [startup-config]? ',v=>{ const a=v.trim().toLowerCase(); if(a===''||a==='startup-config') this.save(); else this.note('% このドリルでは startup-config への保存のみ対応'); }); }
+  cmdWrite(){ this.save(); }
+  cmdTermLen(a){ this.pageLen=+a.n; }
+
+  /* ---- グローバル設定 ---- */
+  cfgLog(){ this.print(`${logStamp()}: %SYS-5-CONFIG_I: Configured from console by console`,'log'); }
+  cmdEnd(){ this.mode='priv'; this.sub={}; this.cfgLog(); }
+  cmdExitCfg(){ this.cmdEnd(); }
+  cmdExitSub(){ this.mode='config'; this.sub={}; }
+  cmdHostname(a){ if(!/^[A-Za-z][A-Za-z0-9-]*$/.test(a.name)){ this.err('% Hostname contains one or more illegal characters.'); return; } this.cfg.hostname=a.name; }
+  cmdNoHostname(){ this.cfg.hostname='Router'; }
+  pwArg(raw){ let m; if((m=/^0\s+(\S.*)$/.exec(raw))) return m[1]; if(/^[5789]\s+/.test(raw)){ this.note('% このドリルでは暗号化済みの値の入力は扱いません'); return null; } return raw; }
+  mkPw(v){ const enc=this.cfg.spe; return {v,enc,t7:enc?type7(v):null}; }
+  cmdSecret(a){ const v=this.pwArg(a.v); if(v==null) return; const c=this.cfg;
+    if(c.enpw&&c.enpw.v===v){ this.err('The enable secret you have chosen is the same as your enable password.\nThis is not recommended.  Re-enter the enable secret.'); return; }
+    c.secret={v,hash:fakeHash(v)}; }
+  cmdEnPw(a){ const v=this.pwArg(a.v); if(v==null) return; const c=this.cfg;
+    if(c.secret&&c.secret.v===v){ this.err('The enable password you have chosen is the same as your enable secret.\nThis is not recommended.  Re-enter the enable password.'); return; }
+    c.enpw=this.mkPw(v); }
+  cmdNoSecret(){ this.cfg.secret=null; }
+  cmdNoEnPw(){ this.cfg.enpw=null; }
+  cmdDomOn(){ this.cfg.domainLookup=true; }
+  cmdDomOff(){ this.cfg.domainLookup=false; }
+  cmdSpe(){ const c=this.cfg; c.spe=true; this.flags.speEver=true;
+    [c.enpw,c.con.pw,c.vty.pw,c.vty2&&c.vty2.pw].forEach(p=>{ if(p&&!p.enc){ p.enc=true; p.t7=type7(p.v); } }); }
+  cmdNoSpe(){ this.cfg.spe=false; }
+  cmdBanner(a){
+    const rest=a.text, d=rest[0], after=rest.slice(1), i=after.indexOf(d);
+    if(i>=0){ this.cfg.banner=after.slice(0,i); return; }
+    this.print(`Enter TEXT message.  End with the character '${d}'.`);
+    const buf=after?[after]:[];
+    const more=()=>this.ask('',v=>{ const j=v.indexOf(d); if(j>=0){ buf.push(v.slice(0,j)); this.cfg.banner=buf.join('\n'); } else { buf.push(v); more(); } },{kind:'banner'});
+    more();
+  }
+  cmdNoBanner(){ this.cfg.banner=null; }
+  lineObj(n){ const c=this.cfg; if(n==='con') return c.con; if(n==='vty') return c.vty; if(!c.vty2) c.vty2=newLine(); return c.vty2; }
+  targets(){ return (this.sub.lines||[]).map(n=>this.lineObj(n)); }
+  cmdLineCon(){ this.mode='line'; this.sub={lines:['con']}; }
+  cmdLineVty(a){ const s=+a.a, e=a.b!=null?+a.b:s; if(e<s){ this.err('%Invalid line range'); return; }
+    const lines=[]; if(s<=4) lines.push('vty'); if(e>4){ lines.push('vty2'); this.lineObj('vty2'); }
+    this.mode='line'; this.sub={lines}; }
+  cmdIface(a){ this.mode='if'; this.sub={ifn:a.name}; }
+
+  /* ---- ライン設定 ---- */
+  cmdLinePw(a){ const v=this.pwArg(a.v); if(v==null) return; this.targets().forEach(t=>t.pw=this.mkPw(v)); }
+  cmdNoLinePw(){ this.targets().forEach(t=>t.pw=null); }
+  cmdLogin(){ for(const n of this.sub.lines){ const t=this.lineObj(n); t.login=true;
+      if(!t.pw){ const nums=n==='con'?[0]:n==='vty'?[2,3,4,5,6]:[7]; nums.forEach(x=>this.print(`% Login disabled on line ${x}, until 'password' is set`)); } } }
+  cmdNoLogin(){ this.targets().forEach(t=>t.login=false); }
+  cmdExecTo(a){ const m=+a.m, s=a.s!=null?+a.s:0; this.targets().forEach(t=>t.et=[m,s]); }
+  cmdNoExecTo(){ this.targets().forEach(t=>t.et=null); }
+  cmdLogSync(){ this.targets().forEach(t=>t.ls=true); }
+  cmdNoLogSync(){ this.targets().forEach(t=>t.ls=false); }
+  cmdTransport(a){
+    const KW=['all','none','pad','rlogin','ssh','telnet'], out=[];
+    for(const w of a.v.trim().split(/\s+/)){ const low=w.toLowerCase(); const c=KW.filter(k=>k.startsWith(low));
+      const hit=KW.includes(low)?low:c.length===1?c[0]:null;
+      if(!hit||(this.strict()&&hit!==low)){ this.err("% Invalid input detected at '^' marker."); return; }
+      if(!out.includes(hit)) out.push(hit); }
+    const v=out.includes('all')?['all']:out.includes('none')?['none']:['pad','rlogin','telnet','ssh'].filter(k=>out.includes(k));
+    this.targets().forEach(t=>t.ti=v); }
+  cmdNoTransport(){ this.targets().forEach(t=>t.ti=null); }
+
+  /* ---- インタフェース設定 ---- */
+  iface(){ return this.cfg.ifs[this.sub.ifn]; }
+  cmdIpAddr(a){
+    const ip=parseIp(a.ip), m=parseIp(a.mask);
+    const bad=()=>this.err(`Bad mask 0x${hex8(m)} for address ${fmtIp(ip)}`);
+    if(m===0||!maskOk(m)) return bad();
+    const host=(ip&~m)>>>0, bc=(~m)>>>0;
+    if(m<0xFFFFFFFE && (host===0||host===bc)) return bad();
+    for(const n of IFACES){ if(n===this.sub.ifn) continue; const o=this.cfg.ifs[n]; if(!o.ip) continue;
+      const oi=parseIp(o.ip), om=parseIp(o.mask), mm=Math.min(m,om)>>>0;
+      if(((oi&mm)>>>0)===((ip&mm)>>>0)){ this.err(`% ${fmtIp((ip&m)>>>0)} overlaps with GigabitEthernet${n}`); return; } }
+    const i=this.iface(); i.ip=fmtIp(ip); i.mask=fmtIp(m);
+  }
+  cmdNoIpAddr(){ const i=this.iface(); i.ip=null; i.mask=null; }
+  cmdShut(){ const i=this.iface(); if(!i.shut){ i.shut=true; this.print(`${logStamp()}: %LINK-5-CHANGED: Interface GigabitEthernet${this.sub.ifn}, changed state to administratively down`,'log'); } }
+  cmdNoShut(){ const i=this.iface(); if(i.shut){ i.shut=false; this.print(`${logStamp()}: %LINK-3-UPDOWN: Interface GigabitEthernet${this.sub.ifn}, changed state to down`,'log'); } }
+  cmdDesc(a){ this.iface().desc=a.text.slice(0,240); }
+  cmdNoDesc(){ this.iface().desc=null; }
+
+  /* ---- running-config の本文 ---- */
+  body(){
+    const c=this.cfg, L=[], pw=p=>p.enc?`7 ${p.t7}`:p.v;
+    L.push('!','version 16.9','service timestamps debug datetime msec','service timestamps log datetime msec');
+    if(c.spe) L.push('service password-encryption');
+    L.push('platform qfp utilization monitor load 80','no platform punt-keepalive disable-kernel-core','!',`hostname ${c.hostname}`,'!',
+      'boot-start-marker','boot-end-marker','!','!');
+    if(c.secret) L.push(`enable secret 5 ${c.secret.hash}`);
+    if(c.enpw) L.push(`enable password ${pw(c.enpw)}`);
+    L.push('!','no aaa new-model','!');
+    if(!c.domainLookup) L.push('no ip domain lookup','!');
+    L.push('!','!','login on-success log','!','!','!','subscriber templating','!','!','multilink bundle-name authenticated','!','!','!',
+      'license udi pid ISR4221/K9 sn FGL0000XXXX','no license smart enable','diagnostic bootup level minimal','!','spanning-tree extend system-id','!','!',
+      'redundancy',' mode none','!','!','!','!','!','!');
+    for(const n of IFACES){ const i=c.ifs[n]; L.push(`interface GigabitEthernet${n}`);
+      if(i.desc!=null) L.push(` description ${i.desc}`); L.push(i.ip?` ip address ${i.ip} ${i.mask}`:' no ip address'); if(i.shut) L.push(' shutdown'); L.push(' negotiation auto','!'); }
+    L.push('ip forward-protocol nd','no ip http server','ip http secure-server','!','!','!','!','control-plane','!');
+    if(c.banner!=null) L.push(`banner motd ^C${c.banner}^C`);
+    L.push('!');
+    const blk=(hdr,o,extra)=>{ L.push(hdr); if(o.et&&!(o.et[0]===10&&o.et[1]===0)) L.push(` exec-timeout ${o.et[0]} ${o.et[1]}`);
+      if(o.pw) L.push(` password ${pw(o.pw)}`); if(o.ls) L.push(' logging synchronous'); if(o.login) L.push(' login');
+      const ti=o.ti||(hdr==='line con 0'?['none']:null); if(ti) L.push(` transport input ${ti.join(' ')}`); extra.forEach(x=>L.push(x)); };
+    blk('line con 0',c.con,[' stopbits 1']);
+    L.push('line aux 0',' stopbits 1');
+    blk('line vty 0 4',c.vty,[]);
+    if(c.vty2) blk('line vty 5 15',c.vty2,[]);
+    L.push('!','!','!','end','');
+    return L.join('\n');
+  }
+
+  /* ---- Tab 補完 ---- */
+  complete(text){
+    if(this.pending||this.busy) return null;
+    let tree=TREES[this.mode], base=text, off=0, m;
+    if(this.inCfg && (m=/^(\s*do\s+)(.*)$/i.exec(text))){ tree=TREES.priv; off=m[1].length; base=m[2]; }
+    if(!base.trim()||/\s$/.test(base)) return null;
+    const toks=tokenize(base), last=toks[toks.length-1]; let node=tree;
+    for(let i=0;i<toks.length-1;i++){
+      const low=toks[i].s.toLowerCase(); let nx=node.kids.find(k=>k.k===low);
+      if(!nx){ const km=node.kids.filter(k=>k.k.startsWith(low)), dm=node.decoys.filter(d=>d.startsWith(low)); if(km.length===1&&!dm.length) nx=km[0]; }
+      if(nx){ node=nx.node; continue; }
+      if(node.arg&&node.arg.type!=='rest'&&node.arg.type!=='iface'){ node=node.arg.node; continue; }
+      return null;
+    }
+    const head=text.slice(0,off+last.i), low=last.s.toLowerCase();
+    if(node.arg&&node.arg.type==='iface'){ const mm=/^([a-z]+)(.*)$/i.exec(last.s); if(mm&&'gigabitethernet'.startsWith(mm[1].toLowerCase())) return head+'GigabitEthernet'+mm[2]; return null; }
+    const c=node.kids.map(k=>k.k).concat(node.decoys).filter(k=>k.startsWith(low));
+    if(c.length!==1||c[0]===low) return c.length===1?head+c[0]+' ':null;
+    return head+c[0]+' ';
+  }
+}
+
+/* ================= 問題と採点 ================= */
+const PROBLEMS=[
+  {name:'練習問題１',host:'R1',strong:'maple',weak:'cedar',conpw:'birch',vtypw:'aspen',ip:'192.168.10.1',mask:'255.255.255.0',desc:'link to R2',banner:'Authorized-Access'},
+  {name:'練習問題２',host:'R5',strong:'willow',weak:'poplar',conpw:'hazel',vtypw:'alder',ip:'192.168.20.254',mask:'255.255.255.0',desc:'link to SW1',banner:'Lab-Router'},
+  {name:'練習問題３',host:'HQ-RT1',strong:'spruce',weak:'larch',conpw:'linden',vtypw:'rowan',ip:'192.168.30.1',mask:'255.255.255.0',desc:'link to HQ-SW1',banner:'Staff-Only'}];
+const rint=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function randomProblem(){
+  const hn=rint(1,9), host='R'+hn, strong=pick(['maple','oak','pine','willow']);
+  const weak=pick(['cedar','poplar','larch','elm']);
+  const peers=['R1','R2','R3','R4','R5','R6','R7','R8','R9','SW1','SW2'].filter(p=>p!==host);
+  return {name:'ランダム',host,strong,weak,conpw:pick(['birch','hazel','linden','beech']),vtypw:pick(['aspen','alder','rowan','ivy']),
+    ip:`192.168.${rint(1,254)}.${rint(1,254)}`,mask:'255.255.255.0',desc:`link to ${pick(peers)}`,
+    banner:pick(['Authorized-Access','Lab-Router','Staff-Only','Welcome','Practice-Lab',host+'-Lab'])};
+}
+/* 項目の内部番号は 6〜20。画面には ①〜⑮ として表示する */
+const circ=n=>String.fromCharCode(0x2460+n-6);
+const EXPECT={
+  6:P=>['[yes/no]: no'],
+  7:P=>[`(config)# hostname ${P.host}`],
+  8:P=>[`(config)# enable secret ${P.strong}`],
+  9:P=>[`(config)# enable password ${P.weak}`],
+  10:()=>['(config)# no ip domain-lookup'],
+  11:()=>['(config)# line console 0','(config-line)# login'],
+  12:P=>['(config)# line console 0',`(config-line)# password ${P.conpw}`],
+  13:()=>['(config)# line console 0','(config-line)# exec-timeout 0 0'],
+  14:()=>['(config)# line console 0','(config-line)# logging synchronous'],
+  15:()=>['(config)# line vty 0 4','(config-line)# login'],
+  16:P=>['(config)# line vty 0 4',`(config-line)# password ${P.vtypw}`],
+  17:P=>['(config)# interface gigabitethernet 0/0/0',`(config-if)# ip address ${P.ip} ${P.mask}`],
+  18:()=>['(config)# interface gigabitethernet 0/0/0','(config-if)# no shutdown'],
+  19:P=>['(config)# interface gigabitethernet 0/0/0',`(config-if)# description ${P.desc}`],
+  20:P=>[`(config)# banner motd #${P.banner}#`],
+  21:()=>['(config)# line vty 0 4','(config-line)# transport input telnet']};
+function gradeExam(sim,P){
+  const c=sim.cfg, i0=c.ifs['0/0/0'], res={};
+  const pv=p=>!p?'未設定':p.enc?`暗号化済み（7 ${p.t7}）`:p.v;
+  const encNote=p=>p&&p.enc?'暗号化されています（service password-encryption を打った）':null;
+  const set=(n,ok,got,note)=>{ res[n]={ok:!!ok,got,note:note||null}; };
+  const d=sim.flags.dialog;
+  set(6,d==='no'||d==='ctrlc',d==null?'未回答':d==='yes'?'yes と回答（セットアップモード）':d==='ctrlc'?'Ctrl+C で中断':'no',d==='ctrlc'?'結果は同じですが、通常は no と答えます':null);
+  set(7,c.hostname===P.host,c.hostname);
+  const swap=c.secret&&c.enpw&&c.secret.v===P.weak&&c.enpw.v===P.strong?'secret と password が逆です':null;
+  set(8,c.secret&&c.secret.v===P.strong,c.secret?`enable secret ${c.secret.v}`:'未設定',swap);
+  set(9,c.enpw&&!c.enpw.enc&&c.enpw.v===P.weak,c.enpw?`enable password ${pv(c.enpw)}`:'未設定',swap||encNote(c.enpw));
+  set(10,!c.domainLookup,c.domainLookup?'名前解決が有効のまま':'no ip domain lookup');
+  set(11,c.con.login,c.con.login?'login':'login なし');
+  set(12,c.con.pw&&!c.con.pw.enc&&c.con.pw.v===P.conpw,pv(c.con.pw),encNote(c.con.pw));
+  const et=c.con.et; set(13,et&&et[0]===0&&et[1]===0,et?`exec-timeout ${et[0]} ${et[1]}`:'未設定（既定は10分でログアウト）');
+  set(14,c.con.ls,c.con.ls?'logging synchronous':'未設定');
+  set(15,c.vty.login,c.vty.login?'login':'login なし');
+  set(16,c.vty.pw&&!c.vty.pw.enc&&c.vty.pw.v===P.vtypw,pv(c.vty.pw),encNote(c.vty.pw));
+  set(17,i0.ip===P.ip&&i0.mask===P.mask,i0.ip?`${i0.ip} ${i0.mask}`:'no ip address');
+  set(18,!i0.shut,i0.shut?'shutdown のまま':'no shutdown');
+  set(19,i0.desc===P.desc,i0.desc==null?'未設定':i0.desc);
+  const b=c.banner; const bok=b!=null&&b.trim()===P.banner;
+  set(20,bok,b==null?'未設定':`^C${b}^C`,bok&&b!==P.banner?'本文の前後に空白が入っています':null);
+  if(sim.withTp){ const ti=c.vty.ti; set(21,ti&&(ti.includes('telnet')||ti.includes('all')),ti?`transport input ${ti.join(' ')}`:'未設定',ti&&ti.includes('all')?'all でも Telnet は通りますが、指定どおりなら telnet':null); }
+  return res;
+}
+
+/* ================= 一問一答の出題データ ================= */
+const CFG=['config','line-con','line-vty','if'];
+const ENTER={con:'line console 0',vty:'line vty 0 4',if:'interface gigabitethernet 0/0/0'};
+const FLASH=[
+  {id:'6',n:6,label:'ダイアログなしで起動',q:()=>'起動直後の初期設定ダイアログに答えて、ダイアログに入らずに起動してください。',starts:['dialog'],
+    goal:s=>s.flags.dialog==='no',trap:s=>s.flags.dialog==='yes'?'yes と答えるとセットアップモードに入ります':s.flags.dialog==='ctrlc'?'Ctrl+C でも抜けられますが、ここは no と答える練習です':null,cmd:()=>'no'},
+  {id:'en',n:0,label:'特権EXECモードへ',q:()=>'ユーザEXECモードから特権EXECモードに移ってください。',starts:['user'],goal:s=>s.mode==='priv',cmd:()=>'enable'},
+  {id:'ct',n:0,label:'グローバル設定モードへ',q:()=>'特権EXECモードからグローバルコンフィグレーションモードに移ってください。',starts:['priv'],goal:s=>s.mode==='config',cmd:()=>'configure terminal'},
+  {id:'7',n:7,label:'ホスト名',q:v=>`ホスト名は <span class="v">${v.host2}</span> に設定してください。`,starts:CFG,goal:(s,v)=>s.cfg.hostname===v.host2,
+    trap:(s,v)=>s.cfg.hostname!==v.host&&s.cfg.hostname!==v.host2?`ホスト名が ${s.cfg.hostname} になりました（大文字小文字も区別）`:null,cmd:v=>`hostname ${v.host2}`},
+  {id:'8',n:8,label:'特権パスワード（ハッシュ化される方）',q:v=>`2種類の特権パスワードのうち、<b>ハッシュ化される方</b>を <span class="v">${v.strong}</span> に設定してください。`,starts:CFG,
+    goal:(s,v)=>s.cfg.secret&&s.cfg.secret.v===v.strong,trap:s=>s.cfg.enpw?'enable password は平文で保存される方です':s.cfg.secret?'値が違います':null,cmd:v=>`enable secret ${v.strong}`},
+  {id:'9',n:9,label:'特権パスワード（平文で保存される方）',q:v=>`2種類の特権パスワードのうち、<b>平文で保存される方</b>を <span class="v">${v.weak}</span> に設定してください。`,starts:CFG,
+    goal:(s,v)=>s.cfg.enpw&&s.cfg.enpw.v===v.weak,trap:s=>s.cfg.secret?'enable secret はハッシュ化される方です':s.cfg.enpw?'値が違います':null,cmd:v=>`enable password ${v.weak}`},
+  {id:'10',n:10,label:'名前解決の無効化',q:()=>'DNS による名前解決を無効にしてください。',starts:CFG,pre:s=>{ s.cfg.domainLookup=true; },goal:s=>!s.cfg.domainLookup,cmd:()=>'no ip domain-lookup'},
+  {id:'11',n:11,label:'コンソールのパスワード認証',q:()=>'コンソール接続のパスワード認証を有効にしてください。',starts:CFG,need:'con',goal:s=>s.cfg.con.login,
+    trap:s=>s.cfg.vty.login?'VTY 側に login を設定しました':null,cmd:()=>'login'},
+  {id:'12',n:12,label:'コンソールパスワード',q:v=>`コンソールパスワードは <span class="v">${v.conpw}</span> に設定してください。`,starts:CFG,need:'con',goal:(s,v)=>s.cfg.con.pw&&s.cfg.con.pw.v===v.conpw,
+    trap:s=>s.cfg.vty.pw?'VTY 側にパスワードを設定しました':s.cfg.con.pw?'値が違います':s.cfg.enpw||s.cfg.secret?'それは特権パスワードです':null,cmd:v=>`password ${v.conpw}`},
+  {id:'13',n:13,label:'コンソールのタイムアウト無効',q:()=>'コンソールの自動ログアウトを無効にしてください。',starts:CFG,need:'con',goal:s=>s.cfg.con.et&&s.cfg.con.et[0]===0&&s.cfg.con.et[1]===0,
+    trap:s=>s.cfg.vty.et?'VTY 側に設定しました':s.cfg.con.et?'値が違います（0 0 で無期限）':null,cmd:()=>'exec-timeout 0 0'},
+  {id:'14',n:14,label:'入力の再表示',q:()=>'ログ表示で入力中の行が途切れないようにしてください。',starts:CFG,need:'con',goal:s=>s.cfg.con.ls,
+    trap:s=>s.cfg.vty.ls?'VTY 側に設定しました':null,cmd:()=>'logging synchronous'},
+  {id:'15',n:15,label:'VTY のパスワード認証',q:()=>'VTY 接続のパスワード認証を有効にしてください。',starts:CFG,need:'vty',goal:s=>s.cfg.vty.login,
+    trap:s=>s.cfg.con.login?'コンソール側に login を設定しました':null,cmd:()=>'login'},
+  {id:'16',n:16,label:'VTY パスワード',q:v=>`VTYパスワードは <span class="v">${v.vtypw}</span> に設定してください。`,starts:CFG,need:'vty',goal:(s,v)=>s.cfg.vty.pw&&s.cfg.vty.pw.v===v.vtypw,
+    trap:s=>s.cfg.con.pw?'コンソール側にパスワードを設定しました':s.cfg.vty.pw?'値が違います':s.cfg.enpw||s.cfg.secret?'それは特権パスワードです':null,cmd:v=>`password ${v.vtypw}`},
+  {id:'17',n:17,label:'IP アドレス',q:v=>`インタフェース(gi 0/0/0)にIPアドレス <span class="v">${v.ip}</span>、サブネット <span class="v">${v.mask}</span> を設定してください。`,starts:CFG,need:'if',
+    goal:(s,v)=>s.cfg.ifs['0/0/0'].ip===v.ip&&s.cfg.ifs['0/0/0'].mask===v.mask,
+    trap:s=>IFACES.slice(1).some(n=>s.cfg.ifs[n].ip)?'gi 0/0/0 以外に設定しました':s.cfg.ifs['0/0/0'].ip?'値が違います':null,cmd:v=>`ip address ${v.ip} ${v.mask}`},
+  {id:'18',n:18,label:'インタフェースの有効化',q:()=>'インタフェース(gi 0/0/0)を有効にしてください。',starts:CFG,need:'if',goal:s=>!s.cfg.ifs['0/0/0'].shut,
+    trap:s=>IFACES.slice(1).some(n=>!s.cfg.ifs[n].shut)?'gi 0/0/0 以外を有効化しました':null,cmd:()=>'no shutdown'},
+  {id:'19',n:19,label:'説明文',q:v=>`インタフェース(gi 0/0/0)に説明文 <span class="v">${v.desc}</span> に設定してください。`,starts:CFG,need:'if',goal:(s,v)=>s.cfg.ifs['0/0/0'].desc===v.desc,
+    trap:s=>IFACES.slice(1).some(n=>s.cfg.ifs[n].desc!=null)?'gi 0/0/0 以外に設定しました':s.cfg.ifs['0/0/0'].desc!=null?'説明文が一致しません（大文字小文字・空白も区別）':null,cmd:v=>`description ${v.desc}`},
+  {id:'20',n:20,label:'バナー',q:v=>`バナーメッセージは <span class="v">${v.banner}</span> に設定してください。`,starts:CFG,goal:(s,v)=>s.cfg.banner!=null&&s.cfg.banner.trim()===v.banner,
+    trap:s=>s.cfg.banner!=null?'バナーの本文が一致しません':null,cmd:v=>`banner motd #${v.banner}#`},
+  {id:'tp',n:0,label:'VTY で Telnet を許可',q:()=>'VTY 接続で Telnet を受け付けるように設定してください。',starts:CFG,need:'vty',goal:s=>!!s.cfg.vty.ti&&s.cfg.vty.ti.includes('telnet'),
+    trap:s=>s.cfg.con.ti?'コンソール側に設定しました':s.cfg.vty.ti?'値が違います（telnet を含める）':null,cmd:()=>'transport input telnet'},
+  {id:'run',n:0,label:'現在のコンフィグを表示',q:()=>'現在のコンフィグレーションを表示してください。',starts:['priv','config','line-con','if'],goal:s=>s.flags.lastShowRun,
+    trap:s=>s.flags.last==='cmdShowStart'?'startup-config は保存済みの設定です。現在の設定は running-config':null,
+    cmd:(v,st)=>st==='priv'?'show running-config':'do show running-config',alt:st=>st==='priv'?null:'end → show running-config でも可'},
+  {id:'end',n:0,label:'特権EXECへ一度で戻る',q:()=>'設定モードから、1つのコマンドで特権EXECモードに戻ってください。',starts:['line-con','line-vty','if'],
+    goal:s=>s.mode==='priv'&&s.stats.cmds===1,trap:s=>s.stats.cmds>=1&&s.mode!=='priv'?'exit は1つ上のモードに戻るだけです':null,cmd:()=>'end',alt:()=>'Ctrl+Z でも可'},
+];
+</script>
+
+<script>
+"use strict";
+/* ================= 画面側 ================= */
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store={ get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
+const settings={strict:store.get('rtdrill.strict',false)};
+const strictFn=()=>settings.strict;
+
+class Term{
+  constructor(root){
+    this.root=root; this.sc=root.querySelector('.t-scroll'); this.out=root.querySelector('.t-out'); this.pr=root.querySelector('.t-pr'); this.inp=root.querySelector('.t-inp');
+    this.hist=[]; this.hi=0; this.sim=null; this.intercept=null;
+    this.sc.addEventListener('click',()=>{ if(!String(window.getSelection()||'')) this.focus(); });
+    this.inp.addEventListener('keydown',e=>this.key(e));
+    this.inp.addEventListener('input',()=>{ const s=this.sim; if(!s) return;
+      if(s.busy){ this.inp.value=''; return; }
+      if(s.pending&&s.pending.type==='more'&&this.inp.value){ const ch=this.inp.value.slice(-1); this.inp.value=''; s.moreKey(ch===' '?' ':'q'); } });
+  }
+  key(e){
+    const s=this.sim; if(!s||e.isComposing||e.keyCode===229) return;
+    if(s.busy){ if(e.key==='Enter'&&s.booting){ e.preventDefault(); s.skipBoot(); } else if(!(e.ctrlKey||e.metaKey)) e.preventDefault(); return; }
+    if(s.pending&&s.pending.type==='more'){
+      if(e.key===' '||e.key==='Enter'){ e.preventDefault(); s.moreKey(e.key===' '?' ':'Enter'); }
+      else if(e.key.length===1||e.key==='Escape'){ e.preventDefault(); s.moreKey('q'); }
+      return;
+    }
+    if(e.ctrlKey&&(e.key==='z'||e.key==='Z')){ e.preventDefault(); this.inp.value=''; s.ctrlZ(); return; }
+    if(e.ctrlKey&&(e.key==='c'||e.key==='C')&&this.inp.selectionStart===this.inp.selectionEnd&&!String(window.getSelection()||'')){ e.preventDefault(); this.inp.value=''; s.ctrlC(); return; }
+    if(e.key==='Enter'){ e.preventDefault(); this.enter(); return; }
+    if(e.key==='Tab'){ e.preventDefault(); this.tab(); return; }
+    if(e.key==='ArrowUp'){ e.preventDefault(); this.histMove(-1); return; }
+    if(e.key==='ArrowDown'){ e.preventDefault(); this.histMove(1); return; }
+  }
+  enter(){ const v=this.inp.value; this.inp.value=''; if(this.intercept&&this.intercept(v)) return;
+    if(!this.sim.pending&&v.trim()){ this.hist.push(v); if(this.hist.length>60) this.hist.shift(); } this.hi=this.hist.length; this.sim.submit(v); }
+  tab(){ if(settings.strict){ this.sim.note('% 省略形禁止モードでは Tab 補完は使えません'); return; }
+    const r=this.sim.complete(this.inp.value); if(r!=null){ this.inp.value=r; const n=r.length; this.inp.setSelectionRange(n,n); } }
+  histMove(d){ if(!this.hist.length||(this.sim&&this.sim.pending)) return; this.hi=Math.max(0,Math.min(this.hist.length,this.hi+d)); this.inp.value=this.hist[this.hi]||''; const n=this.inp.value.length; this.inp.setSelectionRange(n,n); }
+  print(s,cls){ const el=document.createElement('span'); if(cls) el.className=cls; el.textContent=s+'\n'; this.out.appendChild(el);
+    while(this.out.childNodes.length>1500) this.out.removeChild(this.out.firstChild); this.scroll(); }
+  printLines(a){ if(a.length) this.print(a.join('\n')); }
+  scroll(){ this.sc.scrollTop=this.sc.scrollHeight; }
+  clear(){ this.out.textContent=''; }
+  setPrompt(p){ this.pr.textContent=p; this.scroll(); }
+  setMask(b){ this.inp.classList.toggle('mask',b); }
+  setBusy(b){ this.root.classList.toggle('busy',b); }
+  focus(){ try{ this.inp.focus({preventScroll:true}); }catch(e){} }
+}
+
+/* キーバー（スマホ用） */
+document.querySelectorAll('.keybar').forEach(bar=>{
+  bar.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
+    const t=bar.dataset.for==='1'?term1:term2, s=t.sim, k=b.dataset.k;
+    if(k==='tab') t.tab(); else if(k==='up') t.histMove(-1); else if(k==='down') t.histMove(1);
+    else if(k==='z'){ t.inp.value=''; s.ctrlZ(); } else if(k==='c'){ t.inp.value=''; s.ctrlC(); } else if(k==='skip') s.skipBoot();
+    t.focus(); });
+});
+
+/* 設定 */
+const strictBox=$('#strict'); strictBox.checked=settings.strict;
+strictBox.addEventListener('change',()=>{ settings.strict=strictBox.checked; store.set('rtdrill.strict',settings.strict); });
+
+/* タブ */
+const TABS=['exam','flash','quiz','ref'];
+let curTab='exam';
+function showTab(name){ if(!TABS.includes(name)) name='exam'; curTab=name;
+  TABS.forEach(t=>{ $('#tab-'+t).hidden=t!==name; document.querySelector(`[data-tab="${t}"]`).setAttribute('aria-selected',String(t===name)); });
+  if(name==='flash'&&!flash.task) flash.next();
+  if(name==='quiz'&&!quiz.cur) quiz.next(); }
+document.querySelector('.tabs').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; const n=b.dataset.tab;
+  if(location.hash!=='#'+n) location.hash=n; else showTab(n); });
+window.addEventListener('hashchange',()=>showTab(location.hash.slice(1)));
+
+/* ================= 通し練習 ================= */
+const term1=new Term($('#term1')); const sim1=new Sim(term1,strictFn);
+const ITEMS=[
+  {n:6,t:P=>'初期設定ダイアログに入らずに起動する'},
+  {n:7,t:P=>`ホスト名を <span class="v">${esc(P.host)}</span> にする`},
+  {n:8,t:P=>`・ハッシュ化される方: <span class="v">${esc(P.strong)}</span>`,group:'特権モードのパスワードを 2 種類設定する'},
+  {n:9,t:P=>`・平文で保存される方: <span class="v">${esc(P.weak)}</span>`},
+  {n:10,t:()=>'DNS による名前解決を無効にする'},
+  {n:11,t:()=>'コンソール接続のパスワード認証を有効にする'},
+  {n:12,t:P=>`コンソールのパスワードを <span class="v">${esc(P.conpw)}</span> にする`},
+  {n:13,t:()=>'コンソールの自動ログアウトを無効にする'},
+  {n:14,t:()=>'ログ表示で入力中の行が途切れないようにする'},
+  {n:15,t:()=>'VTY 接続のパスワード認証を有効にする'},
+  {n:16,t:P=>`VTY のパスワードを <span class="v">${esc(P.vtypw)}</span> にする`},
+  {n:17,t:P=>`gi 0/0/0 に IP アドレスを設定する<br>アドレス <span class="v">${esc(P.ip)}</span><br>マスク <span class="v">${esc(P.mask)}</span>`},
+  {n:18,t:()=>'gi 0/0/0 を有効にする'},
+  {n:19,t:P=>`gi 0/0/0 の説明文を <span class="v">${esc(P.desc)}</span> にする`},
+  {n:20,t:P=>`ログイン時のバナー（MOTD）を <span class="v">${esc(P.banner)}</span> にする`}];
+const PRE_NOTE='ケーブル接続と電源投入は省略し、起動メッセージの後から始めます。';
+const exam={P:PROBLEMS[0],start:0,end:null,graded:false,tick:null};
+function renderSheet(){
+  const P=exam.P; $('#sheetTitle').textContent=P.name;
+  $('#preNote').textContent=PRE_NOTE;
+  $('#items').innerHTML=ITEMS.map(it=>(it.group?`<li><span class="group">${it.group}</span></li>`:'')+
+    `<li data-n="${it.n}"><span class="num">${circ(it.n)}</span><span class="txt">${it.t(P)}</span><span class="mark"></span></li>`).join('')+
+    (sim1.withTp?`<li><span class="group">追加項目</span></li><li data-n="21"><span class="num">追</span><span class="txt">VTY で Telnet 接続を受け付けるようにする</span><span class="mark"></span></li>`:'');
+}
+function markItems(res,showFix){
+  for(const li of document.querySelectorAll('#items li[data-n]')){
+    const n=+li.dataset.n, r=res&&res[n]; li.classList.remove('ok','ng'); li.querySelector('.mark').textContent='';
+    const old=li.querySelector('.fix'); if(old) old.remove();
+    if(!r) continue;
+    li.classList.add(r.ok?'ok':'ng'); li.querySelector('.mark').textContent=r.ok?'○':'×';
+    if(showFix&&(!r.ok||r.note)){ const d=document.createElement('div'); d.className='fix';
+      d.innerHTML=(!r.ok?`<span class="got">入力結果: ${esc(r.got)}</span>`:'')+(r.note?`<span>${esc(r.note)}</span>`:'')+
+        (!r.ok?EXPECT[n](exam.P).map(x=>`<code>${esc(x)}</code>`).join(''):'');
+      li.appendChild(d); }
+  }
+}
+const fmtTime=ms=>{ const s=Math.floor(ms/1000); return pad2(Math.floor(s/60))+':'+pad2(s%60); };
+function startExam(){
+  const v=$('#prob').value; exam.P=v==='r'?randomProblem():PROBLEMS[+v];
+  exam.graded=false; exam.end=null; exam.start=Date.now(); $('#result').hidden=true; $('#tip').hidden=true; $('#skipBtn').hidden=false;
+  renderSheet(); markItems(null); sim1.reset(); term1.hist=[]; term1.hi=0; sim1.boot();
+}
+sim1.onAfter=()=>{ if(!sim1.booting) $('#skipBtn').hidden=true; if($('#live').checked&&!exam.graded) markItems(gradeExam(sim1,exam.P),false); };
+sim1.onLookup=()=>{ $('#tip').hidden=false; };
+$('#live').addEventListener('change',()=>{ if(!exam.graded) markItems($('#live').checked?gradeExam(sim1,exam.P):null,false); });
+$('#prob').addEventListener('change',startExam);
+const tpBox=$('#withTp'); tpBox.checked=store.get('rtdrill.withTp',false); sim1.withTp=tpBox.checked;
+tpBox.addEventListener('change',()=>{ sim1.withTp=tpBox.checked; store.set('rtdrill.withTp',tpBox.checked); renderSheet();
+  if(exam.graded) $('#gradeBtn').click(); else markItems($('#live').checked?gradeExam(sim1,exam.P):null,false); });
+$('#restart').addEventListener('click',()=>{ startExam(); term1.focus(); });
+$('#gradeBtn').addEventListener('click',()=>{
+  const res=gradeExam(sim1,exam.P); exam.graded=true; exam.end=Date.now();
+  const score=Object.values(res).filter(r=>r.ok).length;
+  const c=sim1.cfg, checks=[];
+  checks.push(sim1.flags.lastShowRun?['good','○ running-config を表示した状態で終了']:['bad','× 最後に show running-config を表示していない']);
+  if(c.spe||sim1.flags.speEver) checks.push(['bad','× service password-encryption を設定した（この課題では使わない設定です）']);
+  if(c.vty2) checks.push(['','△ line vty 5 15 も作成されています（この課題では不要です）']);
+  checks.push(['',`所要 ${fmtTime(exam.end-exam.start)}　入力 ${sim1.stats.cmds} 行　エラー ${sim1.stats.errs} 回`]);
+  const r=$('#result'); r.hidden=false;
+  r.innerHTML=`<div class="score">${score}<small> / ${sim1.withTp?16:15}</small></div><ul>${checks.map(([k,t])=>`<li class="${k}">${esc(t)}</li>`).join('')}</ul>`;
+  markItems(res,true); r.scrollIntoView({block:'nearest',behavior:'smooth'});
+});
+exam.tick=setInterval(()=>{ $('#timer').textContent=fmtTime((exam.end||Date.now())-exam.start); },500);
+
+/* ================= 一問一答 ================= */
+const term2=new Term($('#term2')); const sim2=new Sim(term2,strictFn);
+const fstats=store.get('rtdrill.stats.v1',{});
+const flash={task:null,v:null,st:null,state:'idle',lastId:null,sOk:0,sN:0};
+function pickTask(){
+  const pool=FLASH.filter(t=>t.id!==flash.lastId);
+  const w=pool.map(t=>{ const s=fstats[t.id]; if(!s||!s.n) return 3; return 1+4*(1-s.ok/s.n); });
+  let x=Math.random()*w.reduce((a,b)=>a+b,0); for(let i=0;i<pool.length;i++){ x-=w[i]; if(x<=0) return pool[i]; } return pool[pool.length-1];
+}
+const startPrompt=(st,h)=>({dialog:'[yes/no]: ',user:'Router>',priv:'Router#',config:h+'(config)#','line-con':h+'(config-line)#','line-vty':h+'(config-line)#',if:h+'(config-if)#'}[st]);
+flash.next=function(){
+  const t=pickTask(); flash.task=t; flash.lastId=t.id;
+  const v=randomProblem(); v.host2=pick(['R1','R2','R3','R4','R5','R6','R7','R8','R9'].filter(h=>h!==v.host)); flash.v=v;
+  const st=pick(t.starts); flash.st=st;
+  const host=(st==='user'||st==='priv')?'Router':v.host;
+  sim2.reset(); sim2.cfg.hostname=host; sim2.cfg.domainLookup=false;
+  if(t.pre) t.pre(sim2);
+  const ctx=[];
+  if(st==='dialog'){ sim2.dialogOnly(); }
+  else{
+    if(st==='user') sim2.mode='user';
+    else if(st==='priv') sim2.mode='priv';
+    else{ ctx.push(host+'#configure terminal'); ctx.push('Enter configuration commands, one per line.  End with CNTL/Z.'); sim2.mode='config';
+      if(st==='line-con'){ ctx.push(host+'(config)#line console 0'); sim2.mode='line'; sim2.sub={lines:['con']}; }
+      if(st==='line-vty'){ ctx.push(host+'(config)#line vty 0 4'); sim2.mode='line'; sim2.sub={lines:['vty']}; }
+      if(st==='if'){ ctx.push(host+'(config)#interface gigabitethernet 0/0/0'); sim2.mode='if'; sim2.sub={ifn:'0/0/0'}; } }
+    if(ctx.length) term2.print(ctx.join('\n'),'dim');
+    sim2.refresh();
+  }
+  $('#fnum').textContent=t.n?circ(t.n):'補'; $('#flabel').textContent=t.label; $('#fq').innerHTML=t.q(v);
+  const where={dialog:'起動直後の初期設定ダイアログ',user:'ユーザEXEC',priv:'特権EXEC',config:'グローバル設定','line-con':'コンソールのライン設定中（line console 0）','line-vty':'VTY のライン設定中（line vty 0 4）',if:'gi 0/0/0 のインタフェース設定中'}[st];
+  $('#fctx').innerHTML=`開始位置: ${esc(where)}`;
+  $('#fres').hidden=true; flash.state='play'; term2.inp.placeholder=''; updateScore(); term2.focus();
+};
+function answerLines(){
+  const t=flash.task, v=flash.v, st=flash.st, h=(st==='user'||st==='priv')?'Router':v.host, sp=startPrompt(st,h), cmd=t.cmd(v,st), L=[];
+  if(t.need){ const cur=st==='line-con'?'con':st==='line-vty'?'vty':st==='if'?'if':null;
+    if(cur!==t.need){ L.push(sp+ENTER[t.need]); L.push(h+(t.need==='if'?'(config-if)#':'(config-line)#')+cmd); } else L.push(sp+cmd); }
+  else L.push(sp+cmd);
+  if(t.alt&&t.alt(st)) L.push('（'+t.alt(st)+'）');
+  if(!t.need&&['line-con','line-vty','if'].includes(st)&&!['run','end'].includes(t.id)) L.push('（サブモードからでもそのまま打てる）');
+  return L;
+}
+function finish(ok,why){
+  flash.state='done'; const t=flash.task, clean=ok&&sim2.stats.errs===0;
+  const s=fstats[t.id]||(fstats[t.id]={n:0,ok:0}); s.n++; if(clean) s.ok++; store.set('rtdrill.stats.v1',fstats);
+  flash.sN++; if(clean) flash.sOk++;
+  const r=$('#fres'); r.hidden=false; r.className='fres '+(ok?'good':'bad');
+  r.innerHTML=`<span class="verdict">${ok?(clean?'正解':'正解（途中でエラーあり）'):'不正解'}</span>`+(why?`<span class="why">${esc(why)}</span>`:'')+
+    `<pre>${esc(answerLines().join('\n'))}</pre><span class="next">空の Enter か「次の問題」で次へ</span>`;
+  term2.inp.placeholder='Enter で次へ'; updateScore(); renderStats();
+}
+sim2.onAfter=()=>{ if(flash.state!=='play') return; const t=flash.task, v=flash.v;
+  if(t.goal(sim2,v)) return finish(true);
+  const tr=t.trap&&t.trap(sim2,v); if(tr) return finish(false,tr);
+  if(sim2.stats.errs>=3) return finish(false,'エラーが3回に達しました'); };
+term2.intercept=v=>{ if(flash.state==='done'&&!v.trim()){ flash.next(); return true; } return false; };
+$('#freveal').addEventListener('click',()=>{ if(flash.state==='play') finish(false,null); term2.focus(); });
+$('#fnext').addEventListener('click',()=>flash.next());
+function updateScore(){ $('#fscore').textContent=`今回 ${flash.sOk} / ${flash.sN}`; }
+function renderStats(){
+  const rows=FLASH.map(t=>{ const s=fstats[t.id]||{n:0,ok:0}; const p=s.n?Math.round(100*s.ok/s.n):null;
+    return `<tr><td>${t.n?circ(t.n):'補'}</td><td>${esc(t.label)}</td><td class="n">${s.n}</td><td class="n">${p==null?'—':`<span class="bar${p<60?' low':''}"><i style="width:${p}%"></i></span>${p}%`}</td></tr>`; }).join('');
+  $('#ftable').innerHTML=`<thead><tr><th>番号</th><th>項目</th><th>回数</th><th>一発正解率</th></tr></thead><tbody>${rows}</tbody>`;
+}
+const resetBtn=$('#fresetStats');
+resetBtn.addEventListener('click',()=>{ if(resetBtn.dataset.armed){ Object.keys(fstats).forEach(k=>delete fstats[k]); store.set('rtdrill.stats.v1',fstats); renderStats(); resetBtn.textContent='記録を消す'; delete resetBtn.dataset.armed; }
+  else{ resetBtn.dataset.armed='1'; resetBtn.textContent='もう一度押すと消去'; setTimeout(()=>{ if(resetBtn.dataset.armed){ delete resetBtn.dataset.armed; resetBtn.textContent='記録を消す'; } },4000); } });
+
+/* ================= 早見表 ================= */
+const P1=PROBLEMS[0];
+const REF=[
+  ['①','ダイアログなしで起動','[yes/no]:','no','n','—'],
+  ['補','特権EXECモードへ','Router>','enable','en','—'],
+  ['補','グローバル設定モードへ','Router#','configure terminal','conf t','—'],
+  ['②','ホスト名を R1 に','(config)#','hostname R1','host R1','hostname R1'],
+  ['③','ハッシュ化される方のパスワード','(config)#','enable secret maple','ena sec maple','enable secret 5 $1$…'],
+  ['④','平文で保存される方のパスワード','(config)#','enable password cedar','ena pas cedar','enable password cedar'],
+  ['⑤','名前解決無効化','(config)#','no ip domain-lookup','no ip domain-lo','no ip domain lookup'],
+  ['⑥','コンソールパスワード認証を有効化','(config-line)#','login','logi','line con 0 の下に login',`line console 0`],
+  ['⑦','コンソールパスワード','(config-line)#','password birch','pas birch','password birch',`line console 0`],
+  ['⑧','ログアウトしないように','(config-line)#','exec-timeout 0 0','exec-t 0 0','exec-timeout 0 0',`line console 0`],
+  ['⑨','入力が再表示されるように','(config-line)#','logging synchronous','logg s','logging synchronous',`line console 0`],
+  ['⑩','VTYパスワード認証を有効化','(config-line)#','login','logi','line vty 0 4 の下に login','line vty 0 4'],
+  ['⑪','VTYパスワード','(config-line)#','password aspen','pas aspen','password aspen','line vty 0 4'],
+  ['⑫','IPアドレス','(config-if)#','ip address 192.168.10.1 255.255.255.0','ip add 192.168.10.1 255.255.255.0','ip address 192.168.10.1 255.255.255.0','interface gigabitethernet 0/0/0'],
+  ['⑬','インタフェースを有効化','(config-if)#','no shutdown','no sh','shutdown 行が消える','interface gigabitethernet 0/0/0'],
+  ['⑭','説明文','(config-if)#','description link to R2','desc link to R2','description link to R2','interface gigabitethernet 0/0/0'],
+  ['追','VTY で Telnet を許可','(config-line)#','transport input telnet','tr i t','transport input telnet','line vty 0 4'],
+  ['⑮','バナーメッセージ','(config)#','banner motd #Authorized-Access#','ban m #Authorized-Access#','banner motd ^CAuthorized-Access^C'],
+  ['確認','現在のコンフィグを表示','R1#','show running-config','sh run','設定モードからは do sh run'],
+];
+$('#reftable').innerHTML=`<thead><tr><th>番号</th><th>設定内容</th><th>プロンプト</th><th>コマンド</th><th>省略例</th><th>show run での見え方</th></tr></thead><tbody>`+
+  REF.map(r=>`<tr><td>${r[0]}</td><td>${esc(r[1])}</td><td class="run">${esc(r[2])}</td>`+
+    `<td class="cmd hideable" tabindex="0"><span>${r[6]?`<span class="ctx">${esc(r[6])} の後</span>`:''}<code>${esc(r[3])}</code></span></td>`+
+    `<td class="abbr hideable" tabindex="0"><span>${esc(r[4])}</span></td><td class="run">${esc(r[5])}</td></tr>`).join('')+'</tbody>';
+$('#reftable').addEventListener('click',e=>{ const c=e.target.closest('.hideable'); if(c) c.classList.toggle('shown'); });
+$('#reftable').addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('hideable')){ e.preventDefault(); e.target.classList.toggle('shown'); } });
+$('#revealAll').addEventListener('change',e=>$('#ref').classList.toggle('reveal',e.target.checked));
+const SCRIPT=[
+  ['','Would you like to enter the initial configuration dialog? [yes/no]: ','no','①'],
+  ['','Would you like to terminate autoinstall? [yes]: ','（Enter）',''],
+  ['','Press RETURN to get started!  ','（Enter）',''],
+  ['Router>','','enable',''],['Router#','','configure terminal',''],
+  ['Router(config)#','','hostname R1','②'],['R1(config)#','','enable secret maple','③'],['R1(config)#','','enable password cedar','④'],
+  ['R1(config)#','','no ip domain-lookup','⑤'],['R1(config)#','','line console 0',''],['R1(config-line)#','','password birch','⑦'],
+  ['R1(config-line)#','','login','⑥'],['R1(config-line)#','','exec-timeout 0 0','⑧'],['R1(config-line)#','','logging synchronous','⑨'],
+  ['R1(config-line)#','','exit',''],['R1(config)#','','line vty 0 4',''],['R1(config-line)#','','password aspen','⑪'],['R1(config-line)#','','login','⑩'],
+  ['R1(config-line)#','','exit',''],['R1(config)#','','interface gigabitethernet 0/0/0',''],
+  ['R1(config-if)#','','ip address 192.168.10.1 255.255.255.0','⑫'],['R1(config-if)#','','no shutdown','⑬'],['R1(config-if)#','','description link to R2','⑭'],
+  ['R1(config-if)#','','exit',''],['R1(config)#','','banner motd #Authorized-Access#','⑮'],['R1(config)#','','end',''],['R1#','','show running-config','確認']];
+$('#script').innerHTML=SCRIPT.map(([p,q,c,n])=>`<span class="p">${esc(p)}</span>${esc(q)}${esc(c)}${n?`   <span class="c">! ${esc(n)}</span>`:''}`).join('\n');
+$('#scriptToggle').addEventListener('click',e=>{ const s=$('#script'); s.hidden=!s.hidden; e.target.textContent=s.hidden?'表示する':'隠す'; });
+
+/* ================= 四択 ================= */
+const PR={user:'Router>',priv:'Router#',config:'R1(config)#',line:'R1(config-line)#',iface:'R1(config-if)#'};
+const PROMPT_EX={config:'グローバル設定モード',line:'ライン設定モード',iface:'インタフェース設定モード',priv:'特権EXECモード',user:'ユーザEXECモード'};
+const C=s=>`<code>${esc(s)}</code>`;
+/* cat: cmd=問題文→コマンド, prompt=入力するモード, mean=コマンド→意味, know=理解 */
+const QUIZ=[
+  {id:'c6',cat:'cmd',g:()=>({q:'起動時に <code>initial configuration dialog? [yes/no]:</code> と聞かれた。ダイアログに入らずに起動するには？',a:'no',w:['yes','何も入力せず Enter','setup'],ex:'no と答えると設定ダイアログに入らず、Router> のプロンプトに進みます。yes だとセットアップモード（Ctrl+C で中断可）。'})},
+  {id:'cen',cat:'cmd',g:()=>({q:'<code>Router&gt;</code> から特権EXECモードに移るコマンドは？',a:'enable',w:['configure terminal','login','privilege'],ex:'enable で Router# に。設定モードへはその後 configure terminal。'})},
+  {id:'cct',cat:'cmd',g:()=>({q:'<code>Router#</code> からグローバルコンフィグレーションモードに移るコマンドは？',a:'configure terminal',w:['enable config','terminal configure','config mode'],ex:'configure terminal（省略形 conf t）で Router(config)# に移ります。'})},
+  {id:'c7',cat:'cmd',g:v=>({q:`ホスト名を ${C(v.host)} に設定するコマンドは？`,a:`hostname ${v.host}`,w:[`host-name ${v.host}`,`name ${v.host}`,`set hostname ${v.host}`],ex:'hostname の後に名前。大文字小文字はそのままプロンプトに反映されます。'})},
+  {id:'c8',cat:'cmd',g:v=>({q:`2種類の特権パスワードのうち、<b>ハッシュ化される方</b>を ${C(v.strong)} にするコマンドは？`,a:`enable secret ${v.strong}`,w:[`enable password ${v.strong}`,`secret enable ${v.strong}`,`password ${v.strong}`],ex:'enable secret はハッシュ化されて保存されます。enable password は平文です。'})},
+  {id:'c9',cat:'cmd',g:v=>({q:`2種類の特権パスワードのうち、<b>平文で保存される方</b>を ${C(v.weak)} にするコマンドは？`,a:`enable password ${v.weak}`,w:[`enable secret ${v.weak}`,`password ${v.weak}`,`login password ${v.weak}`],ex:'enable password は平文で保存されます（show run でそのまま見える）。password 単体はライン設定のコマンド。'})},
+  {id:'c10',cat:'cmd',g:()=>({q:'名前解決を無効化するコマンドは？',a:'no ip domain-lookup',w:['ip domain-lookup','no ip domain-name','no ip dns'],ex:'no ip domain-lookup（新しい IOS-XE では no ip domain lookup とも書ける）。打ち間違えたときの Translating... の待ちがなくなります。'})},
+  {id:'c11',cat:'cmd',g:()=>({q:'<code>line console 0</code> の中で、コンソールパスワード認証を有効化するコマンドは？',a:'login',w:['login local','enable login','password-required'],ex:'login で line に設定した password による認証が有効になります。login local はユーザー名とパスワードで認証する別の方式。'})},
+  {id:'c12',cat:'cmd',g:v=>({q:`コンソールパスワードを ${C(v.conpw)} にする。<code>line console 0</code> に入った後に打つのは？`,a:`password ${v.conpw}`,w:[`enable password ${v.conpw}`,`login ${v.conpw}`,`secret ${v.conpw}`],ex:'ライン設定モードでは password だけ。enable password は特権パスワードで別物。'})},
+  {id:'c13',cat:'cmd',g:()=>({q:'コンソールがログアウトしないようにするコマンドは？',a:'exec-timeout 0 0',w:['no exec-timeout','exec-timeout 10 0','session-timeout 0'],ex:'exec-timeout 分 秒。0 0 で無期限。no exec-timeout は既定の10分に戻すだけなので逆効果。'})},
+  {id:'c14',cat:'cmd',g:()=>({q:'コンソールからのコマンド入力が（ログ表示で途切れても）再表示されるようにするコマンドは？',a:'logging synchronous',w:['logging console','logging buffered','terminal monitor'],ex:'logging synchronous はログ出力の後に入力途中の行を再表示します。line console 0 の中で設定。'})},
+  {id:'c15',cat:'cmd',g:()=>({q:'VTYパスワード認証を有効化する手順は？',a:'line vty 0 4 → login',w:['line console 0 → login','line vty 0 4 → enable login','line aux 0 → login'],ex:'VTY は Telnet/SSH で入るときの仮想端末。line vty 0 4 に入ってから login。'})},
+  {id:'c16',cat:'cmd',g:v=>({q:`VTYパスワードを ${C(v.vtypw)} にする手順は？`,a:`line vty 0 4 → password ${v.vtypw}`,w:[`line console 0 → password ${v.vtypw}`,`line vty 0 4 → enable password ${v.vtypw}`,`interface vty 0 4 → password ${v.vtypw}`],ex:'line vty 0 4 の中で password。VTY は interface ではなく line。'})},
+  {id:'cif',cat:'cmd',g:()=>({q:'インタフェース gi 0/0/0 の設定モードに入るコマンドは？',a:'interface gigabitethernet 0/0/0',w:['interface 0/0/0','line gigabitethernet 0/0/0','configure interface gi0/0/0'],ex:'interface の後に種類と番号。省略形なら int g0/0/0。'})},
+  {id:'c17',cat:'cmd',g:v=>({q:`gi 0/0/0 に IP アドレス ${C(v.ip)}、サブネット ${C(v.mask)} を設定するコマンドは？`,a:`ip address ${v.ip} ${v.mask}`,w:[`ip address ${v.ip}/24`,`ip ${v.ip} ${v.mask}`,`ip address ${v.mask} ${v.ip}`],ex:'ip address アドレス サブネットマスク の順。/24 のようなプレフィックス表記は使えません。'})},
+  {id:'c18',cat:'cmd',g:()=>({q:'インタフェースを有効化するコマンドは？',a:'no shutdown',w:['shutdown','enable','interface up'],ex:'ルータのインタフェースは初期状態で shutdown（管理上停止）。no shutdown で有効化。'})},
+  {id:'c19',cat:'cmd',g:v=>({q:`gi 0/0/0 に説明文 ${C(v.desc)} を設定するコマンドは？`,a:`description ${v.desc}`,w:[`name ${v.desc}`,`remark ${v.desc}`,`interface description ${v.desc}`],ex:'interface の中で description。後ろの文字列はそのまま show run に出ます。'})},
+  {id:'c20',cat:'cmd',g:v=>({q:`バナーメッセージを ${C(v.banner)} にするコマンドは？`,a:`banner motd #${v.banner}#`,w:[`banner ${v.banner}`,`motd banner #${v.banner}#`,`banner login #${v.banner}#`],ex:'banner motd の後、区切り文字（#）で本文を囲みます。banner login はログイン前に出る別のバナー。'})},
+  {id:'ctp',cat:'cmd',g:()=>({q:'<code>line vty 0 4</code> の中で、Telnet 接続を受け付けるようにするコマンドは？',a:'transport input telnet',w:['transport output telnet','telnet enable','login telnet'],ex:'transport input で、その VTY に入ってこられるプロトコルを指定します。telnet / ssh / all / none など。'})},
+  {id:'k11',cat:'know',g:()=>({q:'VTY に transport input ssh だけが設定されている。PC から telnet でつなぐと？',a:'接続が拒否される',w:['パスワードを聞かれる','そのまま特権モードに入る','コンソールに切り替わる'],ex:'transport input に telnet が含まれていないと、Telnet の接続そのものを受け付けません。'})},
+  {id:'crun',cat:'cmd',g:()=>({q:'<code>R1#</code> で現在のコンフィグレーションを表示するコマンドは？',a:'show running-config',w:['show startup-config','show version','show interfaces'],ex:'現在動いている設定は running-config。startup-config は保存済みの設定（再起動時に読み込まれる）。'})},
+  {id:'cdo',cat:'cmd',g:()=>({q:'<code>R1(config)#</code> のまま現在のコンフィグレーションを表示するには？',a:'do show running-config',w:['show running-config','exec show running-config','run show config'],ex:'設定モードで EXEC のコマンドを打つときは先頭に do。do を付けないと % Invalid input になります。'})},
+  {id:'cend',cat:'cmd',g:()=>({q:'<code>R1(config-if)#</code> から1回で特権EXECモードに戻るのは？',a:'end',w:['exit','disable','quit'],ex:'end（または Ctrl+Z）はどの設定モードからでも # へ。exit は1つ上のモードに戻るだけ。'})},
+  {id:'cspe',cat:'cmd',g:()=>({q:'パスワードを暗号化したくないときに<b>打ってはいけない</b>コマンドは？',a:'service password-encryption',w:['enable secret maple','no ip domain-lookup','logging synchronous'],ex:'service password-encryption はライン等のパスワードを 7 形式に変換します。'})},
+
+  ...[
+    ['hostname R1','config'],['enable secret maple','config'],['enable password cedar','config'],['no ip domain-lookup','config'],['banner motd #Authorized-Access#','config'],
+    ['line console 0','config'],['interface gigabitethernet 0/0/0','config'],
+    ['login','line'],['password birch','line'],['transport input telnet','line'],['exec-timeout 0 0','line'],['logging synchronous','line'],
+    ['ip address 192.168.10.1 255.255.255.0','iface'],['no shutdown','iface'],['description link to R2','iface'],
+    ['configure terminal','priv'],['enable','user']].map(([cmd,m])=>({id:'p:'+cmd,cat:'prompt',g:()=>{
+      const others=Object.keys(PR).filter(k=>k!==m); const w=shuffle(others).slice(0,3);
+      return {q:`${C(cmd)} を入力するのはどのプロンプト？`,a:PR[m],w:w.map(k=>PR[k]),ex:`${PROMPT_EX[m]}（${PR[m]}）で入力します。`+(m==='config'?' ただしサブモード中に打っても自動でグローバル設定に戻って実行されます。':'')}; }})),
+
+  ...[
+    ['exec-timeout 0 0','コンソールがログアウトしないようにする'],['logging synchronous','コマンド入力が再表示されるようにする'],
+    ['no ip domain-lookup','名前解決を無効化する'],['enable secret maple','ハッシュ化される方の特権パスワードを設定する'],
+    ['enable password cedar','平文で保存される方の特権パスワードを設定する'],['login','パスワード認証を有効化する'],
+    ['no shutdown','インタフェースを有効化する'],['description link to R2','インタフェースに説明文を設定する'],
+    ['banner motd #Authorized-Access#','バナーメッセージを設定する'],['password birch','ラインのパスワードを設定する']].map(([cmd,mean],i,all)=>({id:'m:'+cmd,cat:'mean',g:()=>{
+      const w=shuffle(all.filter(x=>x[1]!==mean).map(x=>x[1])).slice(0,3);
+      return {q:`${C(cmd)} は何をするコマンド？`,a:mean,w,ex:`${cmd} → ${mean}。`}; }})),
+
+  {id:'k1',cat:'know',g:()=>({q:'enable secret maple と enable password cedar の両方を設定した。enable で求められるパスワードは？',a:'maple（secret の方）',w:['cedar（password の方）','どちらでも通る','パスワードは求められない'],ex:'両方あると enable secret が優先され、enable password は使われません。'})},
+  {id:'k2',cat:'know',g:()=>({q:'line console 0 で password birch だけ設定し、login を打たなかった。コンソール接続時は？',a:'パスワードを聞かれない',w:['cisco を聞かれる','接続できなくなる','enable のパスワードを聞かれる'],ex:'password と login は2つ1組。login がないと認証は掛かりません。'})},
+  {id:'k3',cat:'know',g:()=>({q:'line console 0 で login だけ打ち、password を設定していない。何が表示される？',a:"% Login disabled on line 0, until 'password' is set",w:["% Invalid input detected at '^' marker.",'% Incomplete command.','何も表示されない'],ex:'password を設定するまでログイン認証は働かないという警告。password を入れれば解消します。'})},
+  {id:'k4',cat:'know',g:()=>({q:'⑬を正しく設定できたとき、show running-config の interface GigabitEthernet0/0/0 はどう見える？',a:'shutdown の行がない',w:['no shutdown の行がある','enable の行がある','shutdown の行がある'],ex:'no shutdown は表示されず、shutdown 行が消えることで有効化が分かります。'})},
+  {id:'k5',cat:'know',g:()=>({q:'ケーブル未接続の gi 0/0/0 に no shutdown した。show ip interface brief の Status は？',a:'down',w:['administratively down','up','unassigned'],ex:'有効化はできているので administratively down ではなくなる。相手がいないので down / down で正常です。'})},
+  {id:'k6',cat:'know',g:()=>({q:'service password-encryption を打ってしまった。no service password-encryption を打つと既存のパスワードは？',a:'7 形式のまま（打ち直しが必要）',w:['平文に戻る','消える','secret 形式に変わる'],ex:'no にしても既に暗号化されたものは戻りません。各パスワードを再入力すると平文で保存されます。'})},
+  {id:'k7',cat:'know',g:()=>({q:'show running-config で enable password cedar はどう見える？（暗号化の設定なし）',a:'enable password cedar',w:['enable password 7 0822455D0A16','enable secret 5 $1$…','表示されない'],ex:'平文のまま見える。secret の方は enable secret 5 $1$… のようにハッシュで表示。'})},
+  {id:'k8',cat:'know',g:()=>({q:'名前解決が有効なまま、特権EXECで hostnme と打ち間違えた。どうなる？',a:'Translating "hostnme"... で待たされる',w:["% Invalid input detected at '^' marker.",'hostname が設定される','すぐ % Ambiguous command'],ex:'未知の単語をホスト名とみなして DNS に問い合わせるため待たされます。⑤で防げます。'})},
+  {id:'k9',cat:'know',g:()=>({q:'R1(config-line)# で hostname R2 と打った。どうなる？',a:'ホスト名が R2 になり (config)# に戻る',w:["% Invalid input detected at '^' marker.",'ライン名が R2 になる','何も起きない'],ex:'サブモードで打ったグローバル設定コマンドは、自動でグローバル設定に戻って実行されます。'})},
+  {id:'k10',cat:'know',g:()=>({q:'banner motd #Authorized-Access と打ち、閉じの # を忘れた。どうなる？',a:'複数行入力になり、# を打つまで本文が続く',w:['エラーになって設定されない','Authorized-Access で設定される','区切り文字が T になる'],ex:"Enter TEXT message. End with the character '#'. と出て複数行入力になる。# を含む行で終わります。"})},
+];
+const QCAT={cmd:'問題文 → コマンド',prompt:'入力するプロンプト',mean:'コマンド → 意味',know:'動作の理解'};
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+const qstats=store.get('rtdrill.quiz.v1',{});
+const quiz={cur:null,answered:false,lastIds:[],sOk:0,sN:0,choices:[]};
+quiz.next=function(){
+  const pool=QUIZ.filter(x=>!quiz.lastIds.includes(x.id));
+  const w=pool.map(x=>{ const s=qstats[x.id]; if(!s||!s.n) return 2; return 0.5+4*(1-s.ok/s.n); });
+  let r=Math.random()*w.reduce((a,b)=>a+b,0), item=pool[pool.length-1];
+  for(let i=0;i<pool.length;i++){ r-=w[i]; if(r<=0){ item=pool[i]; break; } }
+  quiz.lastIds.push(item.id); if(quiz.lastIds.length>8) quiz.lastIds.shift();
+  const v=randomProblem(), Q=item.g(v); quiz.cur={item,Q}; quiz.answered=false;
+  quiz.choices=shuffle([Q.a,...Q.w]);
+  const isCmd=item.cat==='cmd'||item.cat==='prompt';
+  $('#qcat').textContent=QCAT[item.cat]; $('#qq').innerHTML=Q.q;
+  $('#qchoices').innerHTML=quiz.choices.map((c,i)=>`<button class="choice" data-i="${i}"><span class="k">${i+1}</span><span class="ct${isCmd?' cmd':''}">${esc(c)}</span></button>`).join('');
+  $('#qres').hidden=true; $('#qnext').hidden=true;
+};
+function qanswer(i){
+  if(quiz.answered||!quiz.cur) return; quiz.answered=true;
+  const {item,Q}=quiz.cur, ok=quiz.choices[i]===Q.a;
+  const s=qstats[item.id]||(qstats[item.id]={n:0,ok:0}); s.n++; if(ok) s.ok++; store.set('rtdrill.quiz.v1',qstats);
+  quiz.sN++; if(ok) quiz.sOk++;
+  document.querySelectorAll('#qchoices .choice').forEach((b,j)=>{ b.disabled=true;
+    if(quiz.choices[j]===Q.a) b.classList.add('correct'); else if(j===i) b.classList.add('wrong'); else b.classList.add('dim'); });
+  const r=$('#qres'); r.hidden=false; r.className='fres '+(ok?'good':'bad');
+  r.innerHTML=`<span class="verdict">${ok?'正解':'不正解'}</span><span class="why">${esc(Q.ex)}</span>`;
+  $('#qnext').hidden=false; $('#qscore').textContent=`今回 ${quiz.sOk} / ${quiz.sN}`; renderQStats();
+}
+$('#qchoices').addEventListener('click',e=>{ const b=e.target.closest('.choice'); if(b) qanswer(+b.dataset.i); });
+$('#qnext').addEventListener('click',()=>quiz.next());
+document.addEventListener('keydown',e=>{
+  if(curTab!=='quiz'||e.ctrlKey||e.metaKey||e.altKey||e.isComposing) return;
+  const tag=(e.target.tagName||'').toLowerCase(); if(tag==='input'||tag==='select'||tag==='textarea') return;
+  if(/^[1-4]$/.test(e.key)&&!quiz.answered){ e.preventDefault(); qanswer(+e.key-1); }
+  else if(e.key==='Enter'&&quiz.answered){ e.preventDefault(); quiz.next(); }
+});
+function renderQStats(){
+  const rows=Object.keys(QCAT).map(cat=>{ let n=0,ok=0; QUIZ.filter(x=>x.cat===cat).forEach(x=>{ const s=qstats[x.id]; if(s){ n+=s.n; ok+=s.ok; } });
+    const p=n?Math.round(100*ok/n):null; const total=QUIZ.filter(x=>x.cat===cat).length;
+    return `<tr><td>${esc(QCAT[cat])}</td><td class="n">${total}</td><td class="n">${n}</td><td class="n">${p==null?'—':`<span class="bar${p<60?' low':''}"><i style="width:${p}%"></i></span>${p}%`}</td></tr>`; }).join('');
+  const weak=QUIZ.map(x=>({x,s:qstats[x.id]})).filter(o=>o.s&&o.s.n&&o.s.ok<o.s.n).sort((a,b)=>(a.s.ok/a.s.n)-(b.s.ok/b.s.n)).slice(0,5);
+  $('#qtable').innerHTML=`<thead><tr><th>種類</th><th>問題数</th><th>回答数</th><th>正解率</th></tr></thead><tbody>${rows}</tbody>`+
+    (weak.length?`<tbody><tr><th colspan="4">間違えが多い問題</th></tr>${weak.map(o=>{ const q=o.x.g(PROBLEMS[0]).q.replace(/<[^>]+>/g,'').replace(/&gt;/g,'>').replace(/&lt;/g,'<').replace(/&amp;/g,'&'); const t=q.length>48?q.slice(0,47)+'…':q;
+      return `<tr><td colspan="3" class="n">${esc(t)}</td><td class="n">${o.s.ok} / ${o.s.n}</td></tr>`; }).join('')}</tbody>`:'');
+}
+const qreset=$('#qresetStats');
+qreset.addEventListener('click',()=>{ if(qreset.dataset.armed){ Object.keys(qstats).forEach(k=>delete qstats[k]); store.set('rtdrill.quiz.v1',qstats); renderQStats(); qreset.textContent='記録を消す'; delete qreset.dataset.armed; }
+  else{ qreset.dataset.armed='1'; qreset.textContent='もう一度押すと消去'; setTimeout(()=>{ if(qreset.dataset.armed){ delete qreset.dataset.armed; qreset.textContent='記録を消す'; } },4000); } });
+
+/* 起動 */
+renderQStats();
+renderStats();
+startExam();
+showTab(location.hash.slice(1));
+</script>
+
+</body></html>

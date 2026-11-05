@@ -1,0 +1,546 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>サブネット計算ドリル</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<style>
+/* Layout: 方眼紙の上に置いた1枚の演習シート。上に成績、中央に問題、答え合わせ後に2進数の解説、最下部に種類別の記録 */
+:root{
+  --paper:#e8ecf0; --grid:#dbe1e7; --sheet:#fbfcfd; --ink:#16202a; --muted:#5a6876; --rule:#cdd5dd;
+  --net:#0b6f7a; --host:#b05a08; --focus:#e3eef0; --ok:#2a7638; --bad:#b0352b; --okbg:#e3f1e5; --badbg:#f7e4e2;
+  --f-body:"BIZ UDPGothic","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,"Courier New",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0f151b; --grid:#161e26; --sheet:#161f28; --ink:#e2e8ee; --muted:#93a0ad; --rule:#2b3742;
+    --net:#45c3cc; --host:#f0a24e; --focus:#1c2c33; --ok:#63c873; --bad:#f2776c; --okbg:#173022; --badbg:#3a1d1b;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0f151b; --grid:#161e26; --sheet:#161f28; --ink:#e2e8ee; --muted:#93a0ad; --rule:#2b3742;
+  --net:#45c3cc; --host:#f0a24e; --focus:#1c2c33; --ok:#63c873; --bad:#f2776c; --okbg:#173022; --badbg:#3a1d1b;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;
+  color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.7;
+  padding-inline:16px; padding-block:28px 56px;
+}
+.wrap{max-width:880px; margin:0 auto; display:grid; gap:16px}
+.mono{font-family:var(--f-mono)}
+code{font-family:var(--f-mono); font-size:.95em; white-space:nowrap}
+
+header{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px 24px}
+h1{font-family:var(--f-mono); font-weight:700; font-size:1.5rem; letter-spacing:-.01em; margin:0; line-height:1.2}
+h1 span{color:var(--net)}
+.tagline{margin:4px 0 0; color:var(--muted); font-size:.85rem}
+.stats{display:flex; flex-wrap:wrap; gap:6px 20px}
+.stat{display:grid; gap:0}
+.stat small{font-size:.68rem; color:var(--muted); letter-spacing:.08em}
+.stat b{font-family:var(--f-mono); font-size:1.15rem; font-variant-numeric:tabular-nums; font-weight:600}
+
+.panel{background:var(--sheet); border:1px solid var(--rule); border-radius:6px}
+.settings{padding:14px 16px; display:grid; gap:10px}
+.setrow{display:flex; flex-wrap:wrap; align-items:center; gap:8px}
+.setrow > .lab{font-size:.75rem; color:var(--muted); letter-spacing:.08em; min-width:5.5em}
+.chip{font:inherit; font-size:.82rem; padding:3px 10px; border-radius:999px; border:1px solid var(--rule);
+  background:transparent; color:var(--muted); cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink); color:var(--sheet); border-color:var(--ink)}
+.chip:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--net); outline-offset:2px}
+
+.card{padding:20px 20px 22px; display:grid; gap:16px}
+.cardhead{display:flex; justify-content:space-between; align-items:baseline; gap:12px}
+.eyebrow{font-family:var(--f-mono); font-size:.75rem; letter-spacing:.1em; color:var(--net); font-weight:600}
+.timer{font-family:var(--f-mono); font-size:.85rem; color:var(--muted); font-variant-numeric:tabular-nums}
+.prompt{font-family:var(--f-mono); font-weight:700; font-size:clamp(1.3rem,4.6vw,2rem); line-height:1.3; overflow-wrap:anywhere; margin:0}
+.prompt .dim{font-weight:400; color:var(--muted); font-size:.6em; letter-spacing:.05em; margin-inline:.3em}
+.sub{margin:-6px 0 0; color:var(--muted)}
+
+.fields{display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px}
+.field{display:grid; gap:4px; min-width:0}
+.field label{font-size:.78rem; color:var(--muted)}
+.field input{font-family:var(--f-mono); font-size:1.1rem; padding:8px 10px; width:100%; min-width:0;
+  border:1px solid var(--rule); border-radius:4px; background:var(--paper); color:var(--ink); font-variant-numeric:tabular-nums}
+.field input:disabled{opacity:1}
+.field.ok input{border-color:var(--ok); background:var(--okbg)}
+.field.bad input{border-color:var(--bad); background:var(--badbg)}
+.ans{font-family:var(--f-mono); font-size:.82rem; min-height:1.3em}
+.field.ok .ans{color:var(--ok)} .field.bad .ans{color:var(--bad); font-weight:600}
+.choices{display:flex; gap:8px; flex-wrap:wrap}
+.choices button{font:inherit; font-size:1rem; padding:8px 22px; border:1px solid var(--rule); border-radius:4px; background:var(--paper); color:var(--ink); cursor:pointer}
+.choices button.picked{border-color:var(--ink); font-weight:700}
+.field.ok .choices button.picked{border-color:var(--ok); background:var(--okbg)}
+.field.bad .choices button.picked{border-color:var(--bad); background:var(--badbg)}
+
+.actions{display:flex; flex-wrap:wrap; align-items:center; gap:10px}
+.btn{font:inherit; font-size:.92rem; padding:8px 18px; border-radius:4px; cursor:pointer; border:1px solid var(--ink)}
+.btn.primary{background:var(--ink); color:var(--sheet); font-weight:700}
+.btn.ghost{background:transparent; color:var(--ink); border-color:var(--rule)}
+.btn kbd{font-family:var(--f-mono); font-size:.75em; opacity:.7; margin-left:6px}
+.verdict{font-family:var(--f-mono); font-weight:700; font-size:.85rem; padding:3px 12px; border-radius:999px}
+.verdict.ok{color:var(--ok); background:var(--okbg)} .verdict.bad{color:var(--bad); background:var(--badbg)}
+.msg{color:var(--bad); font-size:.85rem}
+
+.explain{border-top:1px dashed var(--rule); padding-top:16px; display:grid; gap:12px}
+.explain h3{margin:0; font-size:.78rem; letter-spacing:.1em; color:var(--muted); font-weight:700}
+.binwrap{overflow-x:auto}
+table.bin{border-collapse:collapse; font-family:var(--f-mono); font-size:.85rem; font-variant-numeric:tabular-nums}
+table.bin th{text-align:left; font-family:var(--f-body); font-weight:400; color:var(--muted); font-size:.78rem; padding:2px 14px 2px 0; white-space:nowrap}
+table.bin td{padding:2px 0; white-space:nowrap}
+table.bin td.dec{padding-left:16px; font-weight:600}
+.oct{padding:1px 2px; border-radius:3px}
+.oct.focus{background:var(--focus)}
+.dot{color:var(--muted); padding:0 1px}
+i.nb,i.hb{font-style:normal}
+i.nb{color:var(--net); font-weight:700} i.hb{color:var(--host)}
+.legend{margin:6px 0 0; font-size:.78rem; color:var(--muted)}
+.steps{margin:0; padding-left:1.4em; display:grid; gap:4px; max-width:68ch}
+.steps b{font-family:var(--f-mono)}
+.strip{display:flex; flex-wrap:wrap; gap:4px; font-family:var(--f-mono); font-size:.85rem}
+.strip span{display:grid; text-align:center; padding:3px 8px; border:1px solid var(--rule); border-radius:3px; min-width:3.2em}
+.strip small{font-size:.65rem; color:var(--muted)}
+.strip span.on{border-color:var(--net); color:var(--net); font-weight:700}
+
+.record{padding:14px 16px; display:grid; gap:10px}
+.recordhead{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap}
+.recordhead h2{margin:0; font-size:.78rem; letter-spacing:.1em; color:var(--muted)}
+.rows{display:grid; gap:6px}
+.row{display:grid; grid-template-columns:minmax(0,11em) 1fr 5.5em; gap:12px; align-items:center; font-size:.85rem}
+.bar{height:6px; background:var(--paper); border-radius:3px; overflow:hidden}
+.bar i{display:block; height:100%; background:var(--net)}
+.row .num{font-family:var(--f-mono); font-size:.8rem; text-align:right; font-variant-numeric:tabular-nums; color:var(--muted)}
+.foot{color:var(--muted); font-size:.78rem; margin:0}
+@media (max-width:520px){ .row{grid-template-columns:minmax(0,8em) 1fr 4.8em} }
+@media (prefers-reduced-motion:no-preference){ .explain{animation:rise .25s ease-out} @keyframes rise{from{transform:translateY(4px)}to{transform:none}} }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>subnet<span>/</span>drill</h1>
+      <p class="tagline">CCNA のサブネット計算を反復練習するドリル</p>
+    </div>
+    <div class="stats" aria-live="polite">
+      <div class="stat"><small>解答</small><b id="s-n">0</b></div>
+      <div class="stat"><small>正答率</small><b id="s-rate">—</b></div>
+      <div class="stat"><small>連続正解</small><b id="s-streak">0</b></div>
+      <div class="stat"><small>平均時間</small><b id="s-time">—</b></div>
+    </div>
+  </header>
+
+  <section class="panel settings" aria-label="出題設定">
+    <div class="setrow"><span class="lab">出題範囲</span><div class="setrow" id="ranges"></div></div>
+    <div class="setrow"><span class="lab">問題の種類</span><div class="setrow" id="types"></div></div>
+  </section>
+
+  <form class="panel card" id="card" autocomplete="off">
+    <div class="cardhead"><span class="eyebrow" id="qtype"></span><span class="timer" id="timer">0.0 s</span></div>
+    <p class="prompt" id="prompt"></p>
+    <p class="sub" id="sub"></p>
+    <div class="fields" id="fields"></div>
+    <div class="actions">
+      <button class="btn primary" id="go" type="submit">答え合わせ<kbd>Enter</kbd></button>
+      <button class="btn ghost" id="reveal" type="button">答えを見る</button>
+      <span id="verdict" hidden></span>
+      <span class="msg" id="msg" hidden></span>
+    </div>
+    <div class="explain" id="explain" hidden></div>
+  </form>
+
+  <section class="panel record" aria-label="種類別の記録">
+    <div class="recordhead">
+      <h2>種類別の記録（このブラウザに保存）</h2>
+      <button class="btn ghost" id="reset" type="button">記録を消去</button>
+    </div>
+    <div class="rows" id="rows"></div>
+    <p class="foot">全角数字・全角ピリオドでも入力できます。プレフィックス長は「26」「/26」どちらでも可。サブネットゼロは使用可能として計算します。</p>
+  </section>
+</div>
+
+<script>
+// ---------- アドレス計算の基本 ----------
+// IPv4 アドレスは 32 ビットの符号なし整数として扱う。JS のビット演算は符号付き 32 ビットなので、結果は >>> 0 で符号なしに戻す。
+const maskOf = p => p === 0 ? 0 : (0xFFFFFFFF << (32 - p)) >>> 0;
+const toIp = n => [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+const oct = (n, k) => (n >>> (24 - 8 * k)) & 255;
+const fromOcts = o => o[0] * 16777216 + (o[1] << 16) + (o[2] << 8) + o[3];
+const fmt = n => n.toLocaleString('ja-JP');
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+
+function info(ip, p) {
+  const m = maskOf(p), net = (ip & m) >>> 0, bc = (net | (~m >>> 0)) >>> 0;
+  return { m, net, bc, first: net + 1, last: bc - 1, hosts: 2 ** (32 - p) - 2 };
+}
+
+// ---------- 入力の正規化と判定 ----------
+function norm(s) {
+  return (s || '').replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/[．。]/g, '.').replace(/／/g, '/').replace(/\s+/g, '');
+}
+function parseIp(s) {
+  const m = norm(s).match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!m) return null;
+  const o = m.slice(1).map(Number);
+  return o.some(x => x > 255) ? null : fromOcts(o);
+}
+function parseNum(s) {
+  const t = norm(s).replace(/[,，、]/g, '').replace(/^\//, '');
+  return /^\d+$/.test(t) ? Number(t) : null;
+}
+function judge(f, v) {
+  if (f.kind === 'ip') return parseIp(v) === f.answer;
+  if (f.kind === 'num') return parseNum(v) === f.answer;
+  return v === f.answer;
+}
+
+// ---------- 出題設定 ----------
+const RANGES = {
+  c: { min: 24, max: 30, label: '/24〜/30', bases: [24] },
+  b: { min: 16, max: 30, label: '/16〜/30', bases: [16, 24] },
+  a: { min: 8, max: 30, label: '/8〜/30', bases: [8, 16, 24] },
+};
+const TYPES = [
+  ['full', '総合（全項目）'], ['network', 'ネットワークアドレス'], ['broadcast', 'ブロードキャスト'],
+  ['range', '使用可能範囲'], ['hosts', 'ホスト数'], ['mask', 'マスク ⇔ プレフィックス'],
+  ['wildcard', 'ワイルドカード'], ['needHosts', '必要ホスト数から設計'], ['needSubnets', 'サブネット分割'],
+  ['nth', 'n 番目のサブネット'], ['same', '同一サブネット判定'],
+];
+const LABEL = Object.fromEntries(TYPES);
+
+const KEY = 'subnet-drill-v1';
+let store = { rec: {}, range: 'b', types: TYPES.map(t => t[0]) };
+try { const s = JSON.parse(localStorage.getItem(KEY)); if (s) store = Object.assign(store, s); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} };
+
+const R = () => RANGES[store.range] || RANGES.b;
+const pfx = () => rnd(R().min, R().max);
+
+// ---------- アドレスの乱数生成 ----------
+const FIRST = [
+  () => [192, 168, rnd(0, 255), rnd(0, 255)],
+  () => [172, rnd(16, 31), rnd(0, 255), rnd(0, 255)],
+  () => [10, rnd(0, 255), rnd(0, 255), rnd(0, 255)],
+  () => { let a; do a = rnd(1, 223); while (a === 127 || a === 10); return [a, rnd(0, 255), rnd(0, 255), rnd(0, 255)]; },
+];
+// ネットワークアドレスやブロードキャストそのものではない「ホストの IP」を返す
+function hostIp(p) {
+  for (;;) {
+    const ip = fromOcts(pick(FIRST)()), s = info(ip, p);
+    if (ip !== s.net && ip !== s.bc) return ip;
+  }
+}
+const baseNet = p0 => (fromOcts(pick(FIRST)()) & maskOf(p0)) >>> 0;
+
+// ---------- 解説の部品 ----------
+const focusOctet = p => Math.min(3, Math.floor(p / 8));
+function bits(n, p, k) {
+  let h = '';
+  for (let o = 0; o < 4; o++) {
+    h += `<span class="oct${o === k ? ' focus' : ''}">`;
+    for (let b = 0; b < 8; b++) {
+      const i = o * 8 + b;
+      h += `<i class="${i < p ? 'nb' : 'hb'}">${(n >>> (31 - i)) & 1}</i>`;
+    }
+    h += '</span>' + (o < 3 ? '<span class="dot">.</span>' : '');
+  }
+  return h;
+}
+function binTable(rows, p, k) {
+  return `<div class="binwrap"><table class="bin"><tbody>${rows.map(([l, n]) =>
+    `<tr><th>${l}</th><td>${bits(n, p, k)}</td><td class="dec">${toIp(n)}</td></tr>`).join('')}</tbody></table>
+    <p class="legend"><i class="nb">■</i> ネットワーク部 ${p} ビット　<i class="hb">■</i> ホスト部 ${32 - p} ビット　（網掛け = 注目オクテット）</p></div>`;
+}
+function maskStrip(p) {
+  const vals = [0, 128, 192, 224, 240, 248, 252, 254, 255];
+  return `<div class="strip" aria-label="オクテット内の1のビット数とマスク値">${vals.map((v, i) =>
+    `<span class="${i === p % 8 ? 'on' : ''}"><small>${i}bit</small>${v}</span>`).join('')}</div>`;
+}
+const ord = k => `第${k + 1}オクテット`;
+
+function explainSubnet(ip, p) {
+  const s = info(ip, p), k = focusOctet(p), mo = oct(s.m, k), io = oct(ip, k);
+  const table = binTable([['IP', ip], ['マスク', s.m], ['ネットワーク', s.net], ['ブロードキャスト', s.bc]], p, k);
+  let steps;
+  if (p % 8 === 0) {
+    steps = `<li>/${p} はオクテット境界ちょうど。${ord(k)}以降がすべてホスト部。</li>
+      <li>ネットワーク = ${ord(k)}以降を 0 → <code>${toIp(s.net)}</code><br>ブロードキャスト = ${ord(k)}以降を 255 → <code>${toIp(s.bc)}</code></li>`;
+  } else {
+    const bs = 256 - mo, lo = Math.floor(io / bs) * bs;
+    steps = `<li>/${p} のマスクは <code>${toIp(s.m)}</code>。境界は${ord(k)}にあり、その値は <b>${mo}</b>。</li>
+      <li>ブロックサイズ = 256 − ${mo} = <b>${bs}</b>。${ord(k)}は ${bs} 刻み（0, ${bs}, ${bs * 2}, …）で区切られる。</li>
+      <li>IP の${ord(k)} <b>${io}</b> は <b>${lo}〜${lo + bs - 1}</b> の区間に入る。</li>
+      <li>ネットワーク = 区間の先頭${k < 3 ? '、以降のオクテットは 0' : ''} → <code>${toIp(s.net)}</code><br>
+        ブロードキャスト = 区間の末尾${k < 3 ? '、以降のオクテットは 255' : ''} → <code>${toIp(s.bc)}</code></li>`;
+  }
+  steps += `<li>使用可能範囲 = ネットワーク + 1 〜 ブロードキャスト − 1 → <code>${toIp(s.first)}</code> 〜 <code>${toIp(s.last)}</code></li>
+    <li>ホスト数 = 2<sup>${32 - p}</sup> − 2 = <b>${fmt(s.hosts)}</b>（ネットワークとブロードキャストの 2 つを除く）</li>`;
+  return `<h3>解説</h3>${table}<ol class="steps">${steps}</ol>`;
+}
+function explainMask(p) {
+  const m = maskOf(p), k = focusOctet(p), r = p % 8;
+  const line = r === 0
+    ? `1 が ${p} 個。オクテット境界ちょうどなので、255 が ${p / 8} 個並ぶ。`
+    : `1 が ${p} 個。255 が ${Math.floor(p / 8)} 個並び、${ord(k)}は上位 ${r} ビットが 1 → <b>${oct(m, k)}</b>。`;
+  return `<h3>解説</h3>${binTable([['マスク', m]], p, k)}<ol class="steps"><li>${line}</li>
+    <li>オクテット内の 1 の個数とマスク値の対応（覚えておくと速い）:</li></ol>${maskStrip(p)}`;
+}
+
+// ---------- 問題の生成 ----------
+const ipF = (key, label, a) => ({ key, label, kind: 'ip', answer: a, show: toIp(a) });
+const numF = (key, label, a, isPfx) => ({ key, label, kind: 'num', answer: a, show: isPfx ? '/' + a : fmt(a) });
+const given = (ip, p) => Math.random() < 0.3
+  ? `${toIp(ip)}<span class="dim">mask</span>${toIp(maskOf(p))}` : `${toIp(ip)}/${p}`;
+
+function subnetQ(make) {
+  const p = pfx(), ip = hostIp(p), s = info(ip, p);
+  return Object.assign({ prompt: given(ip, p), explain: explainSubnet(ip, p) }, make(s, p));
+}
+
+const GEN = {
+  full: () => subnetQ(s => ({
+    sub: 'このホストが属するサブネットについて、すべて答えてください。',
+    fields: [ipF('net', 'ネットワークアドレス', s.net), ipF('bc', 'ブロードキャストアドレス', s.bc),
+      ipF('first', '先頭ホスト', s.first), ipF('last', '最終ホスト', s.last), numF('hosts', '使用可能ホスト数', s.hosts)],
+  })),
+  network: () => subnetQ(s => ({ sub: 'このホストが属するサブネットのネットワークアドレスは?', fields: [ipF('net', 'ネットワークアドレス', s.net)] })),
+  broadcast: () => subnetQ(s => ({ sub: 'このホストが属するサブネットのブロードキャストアドレスは?', fields: [ipF('bc', 'ブロードキャストアドレス', s.bc)] })),
+  range: () => subnetQ(s => ({ sub: 'このサブネットでホストに割り当てられる範囲は?', fields: [ipF('first', '先頭ホスト', s.first), ipF('last', '最終ホスト', s.last)] })),
+
+  hosts() {
+    const p = pfx(), h = 32 - p, useMask = Math.random() < 0.5;
+    return {
+      prompt: useMask ? toIp(maskOf(p)) : '/' + p,
+      sub: '1 つのサブネットで使用可能なホスト数は?',
+      fields: [numF('h', '使用可能ホスト数', 2 ** h - 2)],
+      explain: `<h3>解説</h3>${binTable([['マスク', maskOf(p)]], p, focusOctet(p))}<ol class="steps">
+        <li>ホスト部 = 32 − ${p} = <b>${h}</b> ビット</li>
+        <li>2<sup>${h}</sup> − 2 = ${fmt(2 ** h)} − 2 = <b>${fmt(2 ** h - 2)}</b>（ネットワークとブロードキャストを除く）</li></ol>`,
+    };
+  },
+
+  mask() {
+    const p = pfx();
+    return Math.random() < 0.5
+      ? { prompt: '/' + p, sub: 'このプレフィックス長をサブネットマスク（10 進表記）に直すと?', fields: [ipF('m', 'サブネットマスク', maskOf(p))], explain: explainMask(p) }
+      : { prompt: toIp(maskOf(p)), sub: 'このサブネットマスクのプレフィックス長は?', fields: [numF('p', 'プレフィックス長', p, true)], explain: explainMask(p) };
+  },
+
+  wildcard() {
+    const p = pfx(), m = maskOf(p), w = (~m) >>> 0;
+    const calc = [0, 1, 2, 3].map(k => `255 − ${oct(m, k)} = ${oct(w, k)}`).join('、');
+    const ex = `<h3>解説</h3>${binTable([['マスク', m], ['ワイルドカード', w]], p, focusOctet(p))}<ol class="steps">
+      <li>ワイルドカード = 255.255.255.255 − マスク（マスクのビットを反転したもの）</li><li>${calc}</li>
+      <li>ACL や OSPF の network コマンドで、0 のビットは「一致を確認」、1 のビットは「無視」を意味する。</li></ol>`;
+    return Math.random() < 0.6
+      ? { prompt: Math.random() < 0.5 ? toIp(m) : '/' + p, sub: 'これに対応するワイルドカードマスクは?', fields: [ipF('w', 'ワイルドカードマスク', w)], explain: ex }
+      : { prompt: toIp(w), sub: 'このワイルドカードマスクに対応するプレフィックス長は?', fields: [numF('p', 'プレフィックス長', p, true)], explain: ex };
+  },
+
+  needHosts() {
+    const p = pfx(), h = 32 - p, cap = 2 ** h - 2, prev = 2 ** (h - 1) - 2;
+    const n = rnd(Math.max(1, prev + 1), cap);
+    return {
+      prompt: `${fmt(n)} 台`,
+      sub: '1 つのサブネットにこの台数のホストを収容します。アドレスの無駄が最も少ないプレフィックス長とマスクは?',
+      fields: [numF('p', 'プレフィックス長', p, true), ipF('m', 'サブネットマスク', maskOf(p))],
+      explain: `<h3>解説</h3><ol class="steps">
+        <li>2<sup>h</sup> − 2 ≥ ${fmt(n)} を満たす最小のホストビット数 h を探す。</li>
+        <li>h = ${h - 1} → ${fmt(prev)} 台（不足）　h = <b>${h}</b> → <b>${fmt(cap)}</b> 台（足りる）</li>
+        <li>プレフィックス長 = 32 − ${h} = <b>/${p}</b>、マスク = <code>${toIp(maskOf(p))}</code></li></ol>`,
+    };
+  },
+
+  needSubnets() {
+    const p0 = pick(R().bases), b = rnd(1, Math.min(30 - p0, 10)), p1 = p0 + b, base = baseNet(p0);
+    const n = b === 1 ? 2 : rnd(2 ** (b - 1) + 1, 2 ** b), hosts = 2 ** (32 - p1) - 2;
+    return {
+      prompt: `${toIp(base)}/${p0}`,
+      sub: `このネットワークを ${n} 個以上のサブネットに等分割します。サブネットあたりのホスト数が最大になるように分けると?`,
+      fields: [numF('p', '新しいプレフィックス長', p1, true), numF('h', 'サブネットあたりのホスト数', hosts)],
+      explain: `<h3>解説</h3><ol class="steps">
+        <li>2<sup>b</sup> ≥ ${n} を満たす最小の借用ビット数 b を探す。${b > 1 ? `2<sup>${b - 1}</sup> = ${2 ** (b - 1)} では不足、` : ''}2<sup>${b}</sup> = ${2 ** b} で足りる → b = <b>${b}</b></li>
+        <li>新しいプレフィックス長 = /${p0} + ${b} = <b>/${p1}</b>（マスク <code>${toIp(maskOf(p1))}</code>）</li>
+        <li>ホスト部 = 32 − ${p1} = ${32 - p1} ビット → 2<sup>${32 - p1}</sup> − 2 = <b>${fmt(hosts)}</b></li>
+        <li>借用ビットを増やすとサブネット数は増えるがホスト数が減るため、条件を満たす最小の b を選ぶ。</li></ol>`,
+    };
+  },
+
+  nth() {
+    const p0 = pick(R().bases), b = rnd(1, Math.min(8, 30 - p0)), p1 = p0 + b, base = baseNet(p0);
+    const size = 2 ** (32 - p1), n = rnd(2, Math.min(2 ** b, 16)), net = base + (n - 1) * size, bc = net + size - 1;
+    const k = Math.ceil(p1 / 8) - 1, inc = 2 ** (8 * (k + 1) - p1);
+    const list = [];
+    for (let i = 1; i <= n; i++) {
+      if (i <= 3 || i === n) list.push(`${i} 番目: <code>${toIp(base + (i - 1) * size)}</code>`);
+      else if (i === 4) list.push('…');
+    }
+    return {
+      prompt: `${toIp(base)}/${p0} → /${p1}`,
+      sub: `このように分割したとき、先頭から ${n} 番目のサブネットは?（1 番目 = ${toIp(base)}/${p1}）`,
+      fields: [ipF('net', 'ネットワークアドレス', net), ipF('bc', 'ブロードキャストアドレス', bc)],
+      explain: `<h3>解説</h3><ol class="steps">
+        <li>/${p1} では、ネットワーク部の最後のビットが${ord(k)}にあり、その重みは <b>${inc}</b>。サブネットは${ord(k)}が ${inc} ずつ増える。</li>
+        <li>${list.join('　')}</li>
+        <li>${n} 番目 = 1 番目 + (${n} − 1) × ${inc}（${ord(k)}） → <code>${toIp(net)}</code></li>
+        <li>ブロードキャスト = 次のサブネット <code>${toIp(bc + 1)}</code> の 1 つ手前 → <code>${toIp(bc)}</code></li></ol>`,
+    };
+  },
+
+  same() {
+    let p; do p = pfx(); while (p % 8 === 0);
+    const ip = hostIp(p), s = info(ip, p), size = 2 ** (32 - p), yes = Math.random() < 0.5;
+    let other;
+    if (yes) { do other = s.net + rnd(1, size - 2); while (other === ip); }
+    else {
+      const dir = s.net < size ? 1 : (Math.random() < 0.5 ? 1 : -1);
+      other = s.net + dir * size + rnd(1, size - 2);
+    }
+    const [a, c] = Math.random() < 0.5 ? [ip, other] : [other, ip];
+    const k = focusOctet(p), na = info(a, p).net, nc = info(c, p).net;
+    const ans = yes ? '同じ' : '異なる';
+    return {
+      prompt: `${toIp(a)}<span class="dim">と</span>${toIp(c)}`,
+      sub: `マスクが /${p}（${toIp(maskOf(p))}）のとき、この 2 つは同じサブネットにある?`,
+      fields: [{ key: 'y', label: '判定', kind: 'choice', options: ['同じ', '異なる'], answer: ans, show: ans }],
+      explain: `<h3>解説</h3>${binTable([['A', a], ['B', c], ['マスク', maskOf(p)]], p, k)}<ol class="steps">
+        <li>ネットワーク部（色の濃いビット）が一致すれば同じサブネット。</li>
+        <li>ブロックサイズ = 256 − ${oct(maskOf(p), k)} = ${256 - oct(maskOf(p), k)}（${ord(k)}）</li>
+        <li>A のネットワーク <code>${toIp(na)}</code>、B のネットワーク <code>${toIp(nc)}</code> → <b>${ans}</b></li></ol>`,
+    };
+  },
+};
+
+// ---------- 画面 ----------
+const $ = s => document.querySelector(s);
+const session = { n: 0, ok: 0, streak: 0, time: 0 };
+let cur = null, curType = '', answered = false, t0 = 0, timerId = 0;
+
+function renderSettings() {
+  $('#ranges').innerHTML = Object.entries(RANGES).map(([k, r]) =>
+    `<button type="button" class="chip" data-range="${k}" aria-pressed="${store.range === k}">${r.label}</button>`).join('');
+  $('#types').innerHTML = TYPES.map(([k, l]) =>
+    `<button type="button" class="chip" data-type="${k}" aria-pressed="${store.types.includes(k)}">${l}</button>`).join('');
+}
+$('#ranges').addEventListener('click', e => {
+  const b = e.target.closest('[data-range]'); if (!b) return;
+  store.range = b.dataset.range; save(); renderSettings(); next();
+});
+$('#types').addEventListener('click', e => {
+  const b = e.target.closest('[data-type]'); if (!b) return;
+  const k = b.dataset.type, on = store.types.includes(k);
+  if (on && store.types.length === 1) return; // 最低 1 種類は残す
+  store.types = on ? store.types.filter(t => t !== k) : [...store.types, k];
+  save(); renderSettings();
+  if (on && k === curType) next();
+});
+
+function next() {
+  const pool = store.types.filter(t => GEN[t]);
+  curType = pick(pool.length ? pool : ['full']);
+  cur = GEN[curType]();
+  answered = false;
+  $('#qtype').textContent = LABEL[curType];
+  $('#prompt').innerHTML = cur.prompt;
+  $('#sub').textContent = cur.sub;
+  $('#fields').innerHTML = cur.fields.map(f => f.kind === 'choice'
+    ? `<div class="field"><label>${f.label}</label><div class="choices" id="f-${f.key}" data-value="">${f.options.map(o =>
+        `<button type="button" data-v="${o}">${o}</button>`).join('')}</div><span class="ans"></span></div>`
+    : `<div class="field"><label for="f-${f.key}">${f.label}</label><input id="f-${f.key}" class="mono" data-kind="${f.kind}"
+        inputmode="${f.kind === 'ip' ? 'decimal' : 'numeric'}" autocomplete="off" autocapitalize="off" spellcheck="false"
+        placeholder="${f.kind === 'ip' ? '0.0.0.0' : f.show.startsWith('/') ? '/' : '数値'}"><span class="ans"></span></div>`).join('');
+  $('#go').innerHTML = '答え合わせ<kbd>Enter</kbd>';
+  $('#reveal').hidden = false;
+  $('#verdict').hidden = true; $('#msg').hidden = true;
+  $('#explain').hidden = true; $('#explain').innerHTML = '';
+  const first = $('#fields input, #fields .choices button'); if (first) first.focus({ preventScroll: true });
+  t0 = performance.now(); clearInterval(timerId);
+  timerId = setInterval(() => { $('#timer').textContent = ((performance.now() - t0) / 1000).toFixed(1) + ' s'; }, 100);
+}
+
+$('#fields').addEventListener('click', e => {
+  const b = e.target.closest('.choices button'); if (!b || answered) return;
+  const box = b.parentElement; box.dataset.value = b.dataset.v;
+  box.querySelectorAll('button').forEach(x => x.classList.toggle('picked', x === b));
+  if (cur.fields.length === 1) check(false);
+});
+
+// IP 欄: オクテットを 3 桁入力したら「.」を自動で補う。直後に手で「.」を打っても「..」にならないようにまとめる
+$('#fields').addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.kind !== 'ip' || e.isComposing || !(e.inputType || '').startsWith('insert')) return;
+  if (el.selectionStart !== el.value.length) return; // 途中を編集しているときは触らない
+  let v = el.value.replace(/\.{2,}/g, '.');
+  const parts = v.split('.');
+  if (parts.length < 4 && /^\d{3}$/.test(parts[parts.length - 1])) v += '.';
+  if (v !== el.value) el.value = v;
+});
+
+function check(reveal) {
+  if (answered) return;
+  if (!reveal) {
+    const empty = cur.fields.find(f => f.kind === 'choice' ? !$('#f-' + f.key).dataset.value : !$('#f-' + f.key).value.trim());
+    if (empty) { $('#msg').textContent = '未入力の欄があります'; $('#msg').hidden = false; $('#f-' + empty.key).querySelector?.('button')?.focus(); if (empty.kind !== 'choice') $('#f-' + empty.key).focus(); return; }
+  }
+  clearInterval(timerId);
+  const sec = (performance.now() - t0) / 1000;
+  let all = true;
+  for (const f of cur.fields) {
+    const el = $('#f-' + f.key), box = el.closest('.field');
+    const ok = !reveal && judge(f, f.kind === 'choice' ? el.dataset.value : el.value);
+    all = all && ok;
+    box.classList.add(ok ? 'ok' : 'bad');
+    box.querySelector('.ans').textContent = ok ? '✓ 正解' : '正解: ' + f.show;
+    if (f.kind === 'choice') el.querySelectorAll('button').forEach(b => b.disabled = true); else el.disabled = true;
+  }
+  answered = true;
+  session.n++; session.time += sec;
+  if (all) { session.ok++; session.streak++; } else session.streak = 0;
+  const r = store.rec[curType] || (store.rec[curType] = { n: 0, ok: 0 });
+  r.n++; if (all) r.ok++;
+  save();
+
+  const v = $('#verdict');
+  v.className = 'verdict ' + (all ? 'ok' : 'bad');
+  v.textContent = all ? `正解 ${sec.toFixed(1)} s` : (reveal ? '解答を表示' : '不正解');
+  v.hidden = false; $('#msg').hidden = true; $('#reveal').hidden = true;
+  $('#explain').innerHTML = cur.explain; $('#explain').hidden = false;
+  $('#go').innerHTML = '次の問題<kbd>Enter</kbd>'; $('#go').focus({ preventScroll: true });
+  renderStats();
+}
+
+$('#card').addEventListener('submit', e => { e.preventDefault(); answered ? next() : check(false); });
+$('#reveal').addEventListener('click', () => check(true));
+
+function renderStats() {
+  $('#s-n').textContent = session.n;
+  $('#s-rate').textContent = session.n ? Math.round(session.ok / session.n * 100) + '%' : '—';
+  $('#s-streak').textContent = session.streak;
+  $('#s-time').textContent = session.n ? (session.time / session.n).toFixed(1) + ' s' : '—';
+  $('#rows').innerHTML = TYPES.map(([k, l]) => {
+    const r = store.rec[k] || { n: 0, ok: 0 }, pct = r.n ? Math.round(r.ok / r.n * 100) : 0;
+    return `<div class="row"><span>${l}</span><div class="bar"><i style="width:${pct}%"></i></div>
+      <span class="num">${r.n ? `${pct}% ${r.ok}/${r.n}` : '未解答'}</span></div>`;
+  }).join('');
+}
+
+// 記録の消去は 2 回押しで確定（confirm() は使えないため）
+let armed = 0;
+$('#reset').addEventListener('click', () => {
+  const b = $('#reset');
+  if (!armed) { b.textContent = 'もう一度押すと消去'; armed = setTimeout(() => { armed = 0; b.textContent = '記録を消去'; }, 3000); return; }
+  clearTimeout(armed); armed = 0; b.textContent = '記録を消去';
+  store.rec = {}; save(); renderStats();
+});
+
+renderSettings(); renderStats(); next();
+</script>
+
+</body></html>

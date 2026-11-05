@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>学習ツール集</title>
+<meta name="description" content="ネットワークと基本情報技術者試験の学習用に作ったブラウザ上のツール集です。">
+<style>
+:root{
+  color-scheme:light;
+  --ink:#111; --paper:#fffbe8; --yellow:#ffe14a; --red:#e0213b; --blue:#22c3ff;
+  --pink:#ffd3dc; --green:#d6f7a8; --sky:#c9ecff;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  min-height:100vh;
+  color:var(--ink);
+  font:16px/1.7 "Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+  background:
+    repeating-linear-gradient(45deg,transparent 0 22px,rgba(0,0,0,.035) 22px 44px),
+    linear-gradient(150deg,#fff3a6 0%,#ffc2d4 42%,#a9e4ff 100%);
+}
+
+/* 背景に降る記号。文字の読みやすさを優先して薄く、数も少なくする */
+#rain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+
+/* main は画面幅いっぱいに取り、帯のはみ出しをここで切る。帯以外の幅は下の指定で揃える */
+main{position:relative;z-index:1;padding:40px 0 48px;display:flex;flex-direction:column;align-items:center;gap:32px;overflow-x:clip}
+main>*{width:min(968px,100% - 32px)}
+
+header{text-align:center}
+.kicker{display:inline-block;padding:4px 12px;background:var(--ink);color:var(--yellow);font-size:13px;font-weight:700;letter-spacing:.1em;transform:rotate(-2deg)}
+h1{margin:14px 0 6px;font-size:clamp(44px,11vw,104px);line-height:1.1;font-weight:900;letter-spacing:-.02em;text-shadow:3px 0 var(--red),-3px 0 var(--blue)}
+.lead{margin:0;font-size:clamp(15px,2.6vw,18px);font-weight:700}
+.lead b{padding:0 5px;background:var(--yellow)}
+
+/* 流れる帯。傾けても端に隙間が出ないよう、画面幅より少し長くする */
+main>.tape{width:calc(100% + 48px);flex:none;overflow:hidden;background:var(--red);color:#fff;border-block:3px solid var(--ink);font-weight:800;transform:rotate(-1.2deg)}
+.tape>div{display:inline-block;padding:7px 0;white-space:nowrap;animation:scroll 40s linear infinite}
+@keyframes scroll{to{transform:translateX(-50%)}}
+
+.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:24px;margin:0;padding:0;list-style:none}
+.tool{
+  display:flex;flex-direction:column;height:100%;padding:18px 20px 20px;
+  background:var(--c);color:inherit;text-decoration:none;
+  border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);
+  transform:rotate(var(--r));transition:transform .15s,box-shadow .15s;
+}
+.tool:hover,.tool:focus-visible{transform:rotate(0) translate(-2px,-2px);box-shadow:9px 9px 0 var(--ink)}
+.tool:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.mark{font:900 44px/1.1 "Cascadia Code",Consolas,"Courier New",monospace}
+.name{margin-top:8px;font-size:21px;font-weight:900;line-height:1.35}
+.desc{margin-top:6px;font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 14px}
+.chips span{padding:1px 8px;background:#fff;border:2px solid var(--ink);font-size:12px;font-weight:700}
+.go{margin-top:auto;font-weight:900}
+
+footer{padding:14px 18px;background:var(--paper);border:3px solid var(--ink);font-size:13px}
+footer p{margin:0 0 6px}
+footer p:last-child{margin:0}
+footer a{color:inherit;font-weight:800}
+
+@media (prefers-reduced-motion:reduce){
+  .tape>div{animation:none}
+  .tool{transition:none}
+}
+</style>
+</head>
+<body>
+<canvas id="rain" aria-hidden="true"></canvas>
+<main>
+  <header>
+    <span class="kicker">ブラウザだけで動く 3 本</span>
+    <h1>学習ツール集</h1>
+    <p class="lead">ネットワークと基本情報を、<b>手を動かして</b>覚える。</p>
+  </header>
+
+  <div class="tape" aria-hidden="true"><div id="tape"></div></div>
+
+  <ul class="tools">
+    <li><a class="tool" href="router-drill/" style="--c:var(--pink);--r:-1.2deg">
+      <span class="mark">R1#</span>
+      <span class="name">ルータ基本設定ドリル</span>
+      <span class="desc">Cisco IOS ルータの初期設定を、ブラウザ上の疑似コンソールで練習します。設定結果は自動で採点します。</span>
+      <span class="chips"><span>通し練習</span><span>一問一答</span><span>四択</span><span>早見表</span></span>
+      <span class="go">開く →</span>
+    </a></li>
+    <li><a class="tool" href="subnet-drill/" style="--c:var(--green);--r:.9deg">
+      <span class="mark">/26</span>
+      <span class="name">サブネット計算ドリル</span>
+      <span class="desc">CCNA のサブネット計算を、ランダムな問題で反復練習します。答え合わせのあと、2 進数で計算過程を確認できます。</span>
+      <span class="chips"><span>11 種類の問題</span><span>自動生成</span><span>2 進数の解説</span></span>
+      <span class="go">開く →</span>
+    </a></li>
+    <li><a class="tool" href="kamoku-b/" style="--c:var(--sky);--r:-.7deg">
+      <span class="mark">科目B</span>
+      <span class="name">科目B 完走コース</span>
+      <span class="desc">基本情報技術者試験 科目B の対策コースです。読み方の手順に沿った解説で、易しい問題から公開問題まで進めます。</span>
+      <span class="chips"><span>171 問</span><span>16 ステージ</span><span>セキュリティ別枠</span></span>
+      <span class="go">開く →</span>
+    </a></li>
+  </ul>
+
+  <footer>
+    <p>成績や設定は、お使いのブラウザの中にだけ保存されます。</p>
+    <p>科目B の IPA の問題は、独立行政法人情報処理推進機構の公表問題を一部改変して使用しています。出典は各問に記載しています。</p>
+    <p><a href="https://github.com/Yamagata-inaka/study-tools">ソースコードと制作メモ（GitHub）</a></p>
+  </footer>
+</main>
+
+<script>
+// 帯の文字列。同じ内容を 2 回並べ、半分動いた時点で先頭に戻して継ぎ目をなくす
+const TAPE = '★ enable ★ configure terminal ★ 255.255.255.192 ★ no shutdown ★ 擬似言語 ★ トレース ★ 二分探索 ★ show running-config ';
+document.getElementById('tape').textContent = TAPE.repeat(4) + TAPE.repeat(4);
+
+// 背景に降る記号。動きを減らす設定の閲覧者には出さない
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const ITEMS = ['/24', '/26', '0x', '{}', '#', '>', 'mod', 'if', 'for', '1010', '.255', 'R1#', '←', 'gi0/0'];
+  const MAX_ITEMS = 16;
+  const canvas = document.getElementById('rain');
+  const ctx = canvas.getContext('2d');
+  const items = [];
+  let width = 0, height = 0;
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    width = innerWidth; height = innerHeight;
+    canvas.width = width * dpr; canvas.height = height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  addEventListener('resize', resize);
+  resize();
+
+  function draw() {
+    if (items.length < MAX_ITEMS && Math.random() < 0.02) {
+      items.push({
+        text: ITEMS[Math.floor(Math.random() * ITEMS.length)],
+        x: Math.random() * width, y: -30,
+        vy: 0.4 + Math.random() * 0.7,
+        rot: Math.random() * 6, vr: (Math.random() - .5) * .02,
+        size: 16 + Math.random() * 20,
+      });
+    }
+    ctx.clearRect(0, 0, width, height);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(17,17,17,.2)';
+    for (let i = items.length - 1; i >= 0; i--) {
+      const p = items[i];
+      p.y += p.vy; p.rot += p.vr;
+      if (p.y > height + 40) { items.splice(i, 1); continue; }
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.font = `800 ${p.size}px Consolas, "Courier New", monospace`;
+      ctx.fillText(p.text, 0, 0);
+      ctx.restore();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+</script>
+</body>
+</html>

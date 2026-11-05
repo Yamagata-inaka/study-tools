@@ -1,0 +1,472 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>科目B 完走コース</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDPMincho:wght@400;700&display=swap">
+<style>
+/* Layout: exam-booklet sheet on a desk — problem list rail at left, one question sheet at a time, explanation unfolds under the answer like a teacher's red-pen page */
+:root{
+  --desk:#EEF0EA; --sheet:#FFFFFF; --ink:#1C2230; --muted:#596173; --rule:#D6DAD0;
+  --accent:#2B4C9B; --accent-ink:#FFFFFF; --soft:#E6ECF8;
+  --hot:rgba(255,206,0,.42); --read:rgba(43,76,155,.10); --dim:#A2A8B3;
+  --ok:#1E7A4A; --ok-bg:#E3F3EA; --ng:#B3362F; --ng-bg:#FBE7E5;
+  --code-bg:#F7F8F5;
+  --f-body:"BIZ UDPGothic","Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif;
+  --f-code:"BIZ UDGothic","MS Gothic","Osaka-Mono",monospace;
+  --f-head:"BIZ UDPMincho","Hiragino Mincho ProN","Yu Mincho",serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --desk:#12151B; --sheet:#1B1F27; --ink:#E5E8EE; --muted:#9BA3B2; --rule:#303644;
+  --accent:#8EA7F2; --accent-ink:#10141C; --soft:#252D40;
+  --hot:rgba(255,206,0,.22); --read:rgba(142,167,242,.12); --dim:#5D6473;
+  --ok:#62C690; --ok-bg:#183326; --ng:#F0837A; --ng-bg:#3A1D1C; --code-bg:#161A21; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --desk:#12151B; --sheet:#1B1F27; --ink:#E5E8EE; --muted:#9BA3B2; --rule:#303644;
+  --accent:#8EA7F2; --accent-ink:#10141C; --soft:#252D40;
+  --hot:rgba(255,206,0,.22); --read:rgba(142,167,242,.12); --dim:#5D6473;
+  --ok:#62C690; --ok-bg:#183326; --ng:#F0837A; --ng-bg:#3A1D1C; --code-bg:#161A21; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--desk);color:var(--ink);font-family:var(--f-body);font-size:15.5px;line-height:1.85;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1180px;margin:0 auto}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;padding-block:22px 14px;border-bottom:1px solid var(--rule)}
+header.top h1{font-family:var(--f-head);font-size:1.55rem;margin:0;letter-spacing:.04em;text-wrap:balance}
+header.top .src{color:var(--muted);font-size:.82rem}
+.grid{display:grid;grid-template-columns:250px minmax(0,1fr);gap:24px;padding-top:20px}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+/* problem rail */
+nav.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);align-self:start;display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 24px);overflow-y:auto;padding-right:4px}
+.yr{border-bottom:1px solid var(--rule);padding-bottom:6px}
+.yr summary{cursor:pointer;font-size:.8rem;letter-spacing:.06em;color:var(--muted);font-weight:700;padding:4px 2px;display:flex;justify-content:space-between;gap:8px;list-style:none}
+.yr summary::-webkit-details-marker{display:none}
+.yr summary::before{content:"▸";margin-right:4px}
+.yr[open] summary::before{content:"▾"}
+.yr summary .gname{flex:1}
+.yr summary .gc{font-family:var(--f-code);font-weight:400}
+.sec-h{font-size:.72rem;letter-spacing:.14em;color:var(--accent);font-weight:700;margin:10px 0 2px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tools .score{margin-left:auto}
+.tag{font-size:.72rem;letter-spacing:.06em;border:1px solid var(--rule);border-radius:999px;padding:0 8px}
+.yr ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.yr button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:2.6em 1fr auto;gap:6px;align-items:center;width:100%;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:.88rem;line-height:1.4}
+.yr button:hover{background:var(--soft)}
+.yr button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.yr button[aria-current="true"]{background:var(--accent);color:var(--accent-ink)}
+.yr .no{font-family:var(--f-code);font-size:.8rem;opacity:.8}
+.yr .st{font-size:.8rem;font-weight:700;width:1.2em;text-align:center}
+.st.o{color:var(--ok)} .st.x{color:var(--ng)}
+.yr button[aria-current="true"] .st{color:inherit}
+.score{font-size:.8rem;color:var(--muted)}
+@media (max-width:860px){
+  nav.rail{position:static;max-height:none;overflow:visible}
+  .yr ol{flex-direction:row;flex-wrap:wrap;gap:4px}
+  .yr button{grid-template-columns:auto auto;width:auto;padding:2px 10px;border:1px solid var(--rule)}
+  .yr .tt{display:none}
+}
+
+/* sheet */
+main{min-width:0;display:flex;flex-direction:column;gap:20px}
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:26px clamp(16px,4vw,40px)}
+.eyebrow{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline;color:var(--muted);font-size:.82rem;letter-spacing:.06em}
+.eyebrow b{font-family:var(--f-head);font-size:1.35rem;color:var(--ink);letter-spacing:.02em}
+.stem{max-width:44em}
+.stem p{margin:.7em 0}
+.fig{margin:14px 0;overflow-x:auto}
+.fig table{border-collapse:collapse;font-size:.9rem}
+.fig th,.fig td{border:1px solid var(--rule);padding:4px 10px;text-align:center}
+.fig td.shade{background:repeating-linear-gradient(45deg,var(--rule) 0 2px,transparent 2px 6px)}
+.fig .cap{font-size:.82rem;color:var(--muted);margin-top:4px}
+.box{border:1px solid var(--rule);padding:10px 16px;margin:12px 0;font-size:.92rem;background:var(--code-bg)}
+.box ul{margin:0;padding-left:1.1em}
+.box .cap{font-size:.82rem;color:var(--muted);text-align:center;margin-top:6px}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;font-family:var(--f-code);font-size:.9rem;margin:0 4px}
+.frac span:first-child{border-bottom:1px solid currentColor;padding:0 6px}
+.frac span:last-child{padding:0 6px}
+.mathline{margin:12px 0;overflow-x:auto;white-space:nowrap}
+
+/* code */
+.code{font-family:var(--f-code);font-size:.9rem;line-height:1.75;background:var(--code-bg);border:1px solid var(--rule);border-radius:3px;padding:12px 0;overflow-x:auto;margin:14px 0}
+.code .ln{display:block;white-space:pre;padding:0 16px;min-width:max-content}
+.blank{display:inline-block;min-width:3.2em;border:1.5px solid var(--ink);padding:0 8px;text-align:center;font-weight:700;line-height:1.35}
+.code.map .ln.skip{color:var(--dim)}
+.code.map .ln.read{background:var(--read)}
+.code.map .ln.hot{background:var(--hot)}
+.fillin{font-weight:700;border-bottom:2px solid var(--ok);color:var(--ok)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.8rem;color:var(--muted)}
+.legend i{display:inline-block;width:1.4em;height:.9em;vertical-align:-1px;margin-right:4px;border:1px solid var(--rule)}
+
+/* question + choices */
+.q{font-weight:700;margin-top:18px}
+.choices{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.choices .head,.choice{display:grid;gap:12px;align-items:start}
+.choices .head{font-size:.78rem;color:var(--muted);padding:0 14px;letter-spacing:.1em}
+.choice{all:unset;box-sizing:border-box;display:grid;gap:12px;align-items:start;padding:9px 14px;border:1px solid var(--rule);border-radius:4px;cursor:pointer;font-family:var(--f-code);font-size:.9rem;line-height:1.6;background:var(--sheet)}
+.choice:hover:not([disabled]){border-color:var(--accent);background:var(--soft)}
+.choice:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.choice .k{font-family:var(--f-body);font-weight:700}
+.choice[disabled]{cursor:default}
+.choice.right{border-color:var(--ok);background:var(--ok-bg)}
+.choice.wrong{border-color:var(--ng);background:var(--ng-bg)}
+.choice > span{min-width:0;overflow-wrap:anywhere}
+.result{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-top:16px;font-weight:700}
+.result .badge{padding:2px 12px;border-radius:999px}
+.result .badge.o{background:var(--ok-bg);color:var(--ok)}
+.result .badge.x{background:var(--ng-bg);color:var(--ng)}
+.btn{all:unset;box-sizing:border-box;cursor:pointer;font-size:.86rem;padding:5px 14px;border-radius:4px;border:1px solid var(--rule);font-weight:400}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{color:var(--accent-ink);opacity:.9}
+.peek{margin-top:14px}
+
+/* explanation */
+.ex h2{font-family:var(--f-head);font-size:1.25rem;margin:0 0 4px}
+.ex .lead{color:var(--muted);font-size:.86rem;margin:0 0 18px}
+.step{display:grid;grid-template-columns:2.2em minmax(0,1fr);gap:4px 12px;padding:18px 0;border-top:1px solid var(--rule)}
+.step .n{font-family:var(--f-head);font-size:1.3rem;font-weight:700;color:var(--accent);line-height:1.4}
+.step h3{margin:0 0 6px;font-size:1.02rem}
+.step .body{min-width:0;max-width:46em}
+.step .body p{margin:.5em 0}
+.step .body ul,.step .body ol{margin:.4em 0;padding-left:1.3em}
+.mk{background:linear-gradient(transparent 55%,var(--hot) 55%);font-weight:700}
+code.i{font-family:var(--f-code);font-size:.88em;background:var(--code-bg);border:1px solid var(--rule);border-radius:3px;padding:0 4px;white-space:nowrap}
+.tw{overflow-x:auto;margin:10px 0}
+table.tr{border-collapse:collapse;font-family:var(--f-code);font-size:.84rem;font-variant-numeric:tabular-nums}
+table.tr th,table.tr td{border:1px solid var(--rule);padding:3px 10px;text-align:center;white-space:nowrap}
+table.tr th{background:var(--code-bg);font-weight:700}
+table.tr td.l{text-align:left}
+table.tr tr.em td{background:var(--hot)}
+ul.elim{list-style:none;padding:0 !important;display:flex;flex-direction:column;gap:6px}
+ul.elim li{display:grid;grid-template-columns:3.4em minmax(0,1fr);gap:8px;align-items:baseline}
+ul.elim li b{font-family:var(--f-body)}
+ul.elim li.o b{color:var(--ok)} ul.elim li.x b{color:var(--ng)}
+.sum{margin-top:6px;border:1px solid var(--rule);border-radius:4px;padding:14px 18px;background:var(--code-bg);display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 16px;font-size:.92rem}
+.sum dt{color:var(--muted);font-size:.8rem;letter-spacing:.08em;padding-top:2px}
+.sum dd{margin:0;min-width:0}
+.quote{border-left:3px solid var(--accent);padding:4px 12px;margin:8px 0;background:var(--read);font-size:.92rem}
+.pager{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+details.method{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:10px 16px;font-size:.9rem}
+details.method summary{cursor:pointer;font-weight:700}
+details.method ol{margin:8px 0 4px;padding-left:1.4em}
+@media (prefers-reduced-motion:no-preference){.ex{animation:rise .25s ease-out}@keyframes rise{from{transform:translateY(6px)}to{transform:none}}}
+</style>
+<style>
+/* Course layer: the same exam-booklet sheet, with a stage ladder on the left and a course header that always says where you are */
+body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.course-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 20px;align-items:center;padding-top:16px}
+@media (max-width:640px){.course-head{grid-template-columns:minmax(0,1fr)}}
+.ladder{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:3px}
+.ladder button{all:unset;box-sizing:border-box;cursor:pointer;height:30px;border:1px solid var(--rule);border-radius:3px;background:var(--sheet);position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+.ladder button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.ladder button .fill{position:absolute;inset:auto 0 0 0;background:var(--soft)}
+.ladder button.clear .fill{background:var(--ok-bg)}
+.ladder button .lb{position:relative;font-family:var(--f-code);font-size:.7rem;line-height:1;padding-bottom:4px;color:var(--muted)}
+.ladder button.clear .lb{color:var(--ok);font-weight:700}
+.ladder button[aria-current="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.ladder-cap{display:flex;justify-content:space-between;gap:8px;font-size:.72rem;color:var(--muted);letter-spacing:.06em;margin-top:4px}
+.overall{font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.overall b{font-family:var(--f-head);font-size:1.15rem;color:var(--ink)}
+@media (max-width:640px){.overall{text-align:left}}
+
+.yr summary .stn{font-family:var(--f-code);font-weight:400;margin-right:6px}
+.yr .bar{height:3px;background:var(--rule);border-radius:2px;margin:0 2px 6px;overflow:hidden}
+.yr .bar i{display:block;height:100%;background:var(--accent)}
+.yr.clear .bar i{background:var(--ok)}
+.yr.clear summary{color:var(--ok)}
+.yr .src{font-size:.68rem;color:var(--muted);letter-spacing:.04em}
+.yr button[aria-current="true"] .src{color:inherit;opacity:.85}
+.yr button{grid-template-columns:2.4em 1fr auto auto}
+.tag.ipa{border-color:var(--accent);color:var(--accent)}
+.srcline{margin:4px 0 0;font-size:.8rem;color:var(--muted)}
+
+.stage-card{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:16px clamp(16px,4vw,40px);display:grid;gap:4px}
+.stage-card .ph{font-size:.74rem;letter-spacing:.14em;color:var(--accent);font-weight:700}
+.stage-card h2{font-family:var(--f-head);font-size:1.25rem;margin:0;text-wrap:balance}
+.stage-card p{margin:0;color:var(--muted);font-size:.9rem;max-width:44em}
+.stage-card .stats{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:6px}
+.stage-card .stats b{color:var(--ink)}
+.stage-card .clearmsg{color:var(--ok);font-weight:700}
+
+.endcard{border-top:1px dashed var(--rule);margin-top:20px;padding-top:16px;display:grid;gap:8px}
+.endcard h3{margin:0;font-family:var(--f-head);font-size:1.1rem}
+.endcard p{margin:0;font-size:.9rem}
+.endcard .row{display:flex;flex-wrap:wrap;gap:8px}
+.hint{font-size:.8rem;color:var(--muted)}
+.btn[disabled]{opacity:.45;cursor:default}
+@media (max-width:860px){.yr .src{display:none}.yr button{grid-template-columns:auto auto}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1>科目B 完走コース</h1>
+    <span class="src">171 問（IPA 公開・サンプル問題 71 問＋オリジナル問題 100 問）を、易しい順に 16 ステージへ並べたものです。アルゴリズムは前半がオリジナル中心で、後半ほど IPA の過去問が増えます。セキュリティ問題は専用のグループにまとめ、最後は令和5〜8年度の公開問題で終わります。IPA の問題は各問に出典を記載しています。Web 表示のため、図表の組み直しや文章化、文言の調整など、原本の一部を改変しています。</span>
+  </header>
+  <div class="course-head">
+    <div>
+      <div class="ladder" id="ladder" aria-label="ステージ一覧"></div>
+      <div class="ladder-cap"><span>基礎</span><span>分野別</span><span>過去問中心</span><span>セキュリティ</span><span>総仕上げ</span></div>
+    </div>
+    <div class="overall" id="overall"></div>
+  </div>
+  <div class="grid">
+    <nav class="rail" id="rail" aria-label="ステージと問題"></nav>
+    <main>
+      <section class="stage-card" id="stage"></section>
+      <div class="tools">
+        <button class="btn primary" id="resume">続きから解く</button>
+        <button class="btn" id="redo">このステージの×を解き直す</button>
+        <span class="score" id="score"></span>
+      </div>
+      <details class="method" id="method">
+        <summary>解説で使っている読み方の手順</summary>
+        <ol>
+          <li><b>設問と選択肢を先に見る</b>：穴埋めか、トレースした結果を答えるのかを先に知る。</li>
+          <li><b>選択肢どうしの違いを見る</b>：違う部分が、本当に確かめるべき場所。</li>
+          <li><b>目的を1行でつかむ</b>：問題文の説明から「何をするプログラムか」を一言にする。</li>
+          <li><b>空欄の周りだけ読む</b>：空欄を含むブロックから外へ。関係ない行は読まない。</li>
+          <li><b>小さい例でトレース</b>：要素2〜3個、ループ1〜2周。表に書く。</li>
+          <li><b>選択肢を消す</b>：反例を1つ当てて消す。</li>
+        </ol>
+      </details>
+      <article class="sheet" id="sheet"></article>
+      <section class="sheet ex" id="ex" hidden></section>
+      <div class="pager" id="pager"></div>
+    </main>
+  </div>
+</div>
+
+<script src="course.js"></script>
+<script src="qp.js"></script>
+<script src="qk.js"></script>
+<script src="ql.js"></script>
+<script src="qm.js"></script>
+<script src="qn.js"></script>
+<script src="qa.js"></script>
+<script src="qb.js"></script>
+<script src="qc.js"></script>
+<script src="qd.js"></script>
+<script src="qe.js"></script>
+<script src="qf.js"></script>
+<script src="qg.js"></script>
+<script src="qh.js"></script>
+<script src="qi.js"></script>
+<script src="qj.js"></script>
+<script>
+/* ---------- データの組み立て ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const BY = {};
+(window.PP || []).forEach(p => BY[p.id] = p);
+(window.PI || []).forEach(p => BY[p.id] = p);
+(window.PX || []).forEach(p => { p.orig = true; BY[p.id] = p; });
+const S = window.COURSE;
+const P = [];
+S.forEach((s, si) => { s.n = si + 1; s.items = s.ids.filter(id => BY[id]).map(id => BY[id]); s.items.forEach((p, k) => { p.stage = s; p.k = k; p.seq = P.length + 1; P.push(p); }); });
+
+/* 進捗: {id: {f: 初回の正誤, l: 最後の正誤}} */
+const STORE = "kamokub-course-v1";
+let progress = {};
+try { progress = JSON.parse(localStorage.getItem(STORE) || "{}") || {}; } catch(e) { progress = {}; }
+function save(){ try { localStorage.setItem(STORE, JSON.stringify(progress)); } catch(e) {} }
+const st = p => progress[p.id];
+function stageStat(s){
+  const n = s.items.length, done = s.items.filter(st).length;
+  const first = s.items.filter(p => st(p) && st(p).f === "o").length;
+  const fixed = s.items.filter(p => st(p) && st(p).l === "o").length;
+  const ipa = s.items.filter(p => !p.orig).length;
+  return {n, done, first, fixed, ipa, clear: fixed === n};
+}
+/* IPA の問題の出典表記（IPA の FAQ の書式：年度・試験区分・時間区分・問番号） */
+function srcOf(p) {
+  const m = /^(r|g|ks|kp|gs)(\d*)-/.exec(p.id) || [];
+  const era = m[2] ? "令和" + m[2] + "年度 " : "";
+  const FE = "基本情報技術者試験", SG = "情報セキュリティマネジメント試験";
+  const label = {
+    r:  era + FE + " 科目B 公開問題",
+    g:  era + SG + " 科目B 公開問題",
+    ks: FE + " 科目B サンプル問題セット",
+    kp: FE + " 科目B試験サンプル問題",
+    gs: SG + " サンプル問題セット"
+  }[m[1]] || p.year;
+  return label + " 問" + p.no;
+}
+const srcLabel = p => p.orig ? "オリジナル（" + p.year + "）" : srcOf(p);
+
+function codeLine(raw, fill){
+  let t = esc(raw.slice(1));
+  t = t.replace(/\[\[(\w*)\]\]/g, (m, k) => {
+    if (fill && fill[k] !== undefined) return '<span class="fillin">' + esc(fill[k]) + '</span>';
+    return '<span class="blank">' + (k || "　　") + '</span>';
+  });
+  return t;
+}
+function codeBlock(p, map){
+  const cls = {"!":"hot","+":"read",".":"skip"};
+  return '<div class="code' + (map ? ' map' : '') + '">' + p.code.map(l =>
+    '<span class="ln' + (map ? ' ' + (cls[l[0]] || "skip") : '') + '">' + (codeLine(l, map ? p.fill : null) || " ") + '</span>').join("") + '</div>';
+}
+function gridCols(p){
+  const n = p.choices.cols ? p.choices.cols.length : 1;
+  return p.choices.cols ? "2em " + Array(n).fill("minmax(0,1fr)").join(" ") : "2em minmax(0,1fr)";
+}
+
+/* ---------- 描画 ---------- */
+let curId = null;
+const openStages = new Set();
+
+function renderTop(cur){
+  $("#ladder").innerHTML = S.map(s => {
+    const t = stageStat(s);
+    return '<button data-s="' + s.key + '" class="' + (t.clear ? "clear" : "") + '" aria-current="' + (cur.stage === s) + '" title="ステージ' + s.n + ' ' + s.name + '（' + t.done + '/' + t.n + '）"><span class="fill" style="height:' + Math.round(100 * t.done / t.n) + '%"></span><span class="lb">' + (t.clear ? "✓" : s.n) + '</span></button>';
+  }).join("");
+  $("#ladder").querySelectorAll("button").forEach(b => b.onclick = () => {
+    const s = S.find(x => x.key === b.dataset.s);
+    const p = s.items.find(q => !st(q)) || s.items[0];
+    show(p.id, true);
+  });
+  const done = P.filter(st).length, first = P.filter(p => st(p) && st(p).f === "o").length;
+  const clears = S.filter(s => stageStat(s).clear).length;
+  $("#overall").innerHTML = '<b>' + clears + '</b> / ' + S.length + ' ステージ クリア<br>解いた問題 ' + done + ' / ' + P.length + '　初見正解 ' + first;
+}
+
+function renderRail(cur){
+  openStages.add(cur.stage.key);
+  let lastPh = null;
+  $("#rail").innerHTML = S.map(s => {
+    const t = stageStat(s);
+    const ph = s.phase !== lastPh ? '<div class="sec-h">' + s.phase + '</div>' : "";
+    lastPh = s.phase;
+    return ph + '<details class="yr' + (t.clear ? " clear" : "") + '" data-g="' + s.key + '"' + (openStages.has(s.key) ? " open" : "") + '><summary><span class="gname"><span class="stn">' + String(s.n).padStart(2, "0") + '</span>' + s.name + (t.clear ? " ✓" : "") + '</span><span class="gc">' + t.done + '/' + t.n + '</span></summary><div class="bar"><i style="width:' + Math.round(100 * t.done / t.n) + '%"></i></div><ol>' +
+    s.items.map(p => {
+      const r = st(p), mark = !r ? "" : r.l === "o" ? (r.f === "o" ? "○" : "△") : "×", cls = !r ? "" : r.l === "o" ? "o" : "x";
+      return '<li><button data-id="' + p.id + '" aria-current="' + (p.id === cur.id) + '" title="' + srcLabel(p) + '"><span class="no">' + p.seq + '</span><span class="tt">' + p.topic + '</span><span class="src">' + (p.orig ? "" : "過去問") + '</span><span class="st ' + cls + '">' + mark + '</span></button></li>';
+    }).join("") + '</ol></details>';
+  }).join("");
+  $("#rail").querySelectorAll("details").forEach(d => d.ontoggle = () => { d.open ? openStages.add(d.dataset.g) : openStages.delete(d.dataset.g); });
+  $("#rail").querySelectorAll("button").forEach(b => b.onclick = () => show(b.dataset.id, true));
+}
+
+function renderStage(cur){
+  const s = cur.stage, t = stageStat(s);
+  $("#stage").innerHTML = '<span class="ph">ステージ ' + s.n + ' / ' + S.length + '　' + s.phase + '</span><h2>' + s.name + '</h2><p>' + s.goal + '</p>' +
+    '<div class="stats"><span>問題 <b>' + t.n + '</b>（過去問 ' + t.ipa + '・オリジナル ' + (t.n - t.ipa) + '）</span><span>解いた <b>' + t.done + '</b></span><span>初見正解 <b>' + t.first + '</b></span>' +
+    (t.clear ? '<span class="clearmsg">クリア</span>' : '<span>クリアまで あと <b>' + (t.n - t.fixed) + '</b> 問</span>') + '</div>';
+  const nx = s.items.filter(p => st(p) && st(p).l === "x").length;
+  $("#redo").disabled = !nx;
+  $("#redo").textContent = nx ? "このステージの×を解き直す（" + nx + "）" : "このステージの×はありません";
+  const done = P.filter(st).length;
+  $("#resume").textContent = done === 0 ? "最初から解く" : done === P.length ? "×の問題へ" : "続きから解く";
+  $("#score").textContent = "○ 初見で正解　△ 解き直して正解　× まだ不正解";
+}
+
+function refresh(p){ renderTop(p); renderRail(p); renderStage(p); }
+
+function show(id, scroll){
+  const i = Math.max(0, P.findIndex(p => p.id === id));
+  const p = P[i];
+  curId = p.id;
+  refresh(p);
+  const cols = gridCols(p);
+  const head = p.choices.cols ? '<div class="head" style="grid-template-columns:' + cols + '"><span></span>' + p.choices.cols.map(c => '<span>' + c + '</span>').join("") + '</div>' : "";
+  $("#sheet").innerHTML =
+    '<div class="eyebrow"><b>' + p.seq + '. ' + p.topic + '</b><span>' + (p.sec ? "情報セキュリティ" : "アルゴリズムとプログラミング") + '</span>' +
+    (p.orig ? '<span class="tag">オリジナル問題（過去問ではありません）</span>' : '<span class="tag ipa">過去問</span>') + '</div>' +
+    (p.orig ? '' : '<p class="srcline">出典：' + srcOf(p) + '（一部改変）</p>') +
+    '<div class="stem">' + p.stem + '</div>' +
+    (p.code ? '<p style="margin:14px 0 0">〔プログラム〕</p>' + codeBlock(p, false) : "") +
+    (p.question ? '<p class="q">設問　' + p.question + '</p>' : '<p class="q">解答群</p>') +
+    '<div class="choices" role="group" aria-label="解答群">' + head +
+    p.choices.rows.map(r => '<button class="choice" data-k="' + r[0] + '" style="grid-template-columns:' + cols + '"><span class="k">' + r[0] + '</span>' + r.slice(1).map(c => '<span>' + c + '</span>').join("") + '</button>').join("") +
+    '</div><div id="result"></div><div class="peek"><button class="btn" id="peek">答えを選ばずに解説を見る</button></div><div id="end"></div>';
+  $("#ex").hidden = true;
+  document.querySelectorAll(".choice").forEach(b => b.onclick = () => answer(p, b.dataset.k));
+  $("#peek").onclick = () => answer(p, null);
+  renderPager(i);
+  try { history.replaceState(null, "", "#" + p.id); } catch(e) {}
+  if (scroll) window.scrollTo({top:0});
+}
+
+function renderPager(i){
+  const prev = P[i-1], next = P[i+1], cur = P[i];
+  const nextLabel = !next ? "" : next.stage !== cur.stage ? "ステージ" + next.stage.n + "「" + next.stage.name + "」へ →" : next.seq + ". " + next.topic + " →";
+  $("#pager").innerHTML =
+    (prev ? '<button class="btn" id="prev">← ' + prev.seq + '. ' + prev.topic + '</button>' : '<span></span>') +
+    (next ? '<button class="btn' + (next.stage !== cur.stage ? " primary" : "") + '" id="next">' + nextLabel + '</button>' : '<span></span>');
+  if (prev) $("#prev").onclick = () => show(prev.id, true);
+  if (next) $("#next").onclick = () => show(next.id, true);
+}
+
+function renderEnd(p){
+  const s = p.stage;
+  if (p.k !== s.items.length - 1) { $("#end").innerHTML = ""; return; }
+  const t = stageStat(s);
+  const nxt = S[s.n];
+  const firstNx = s.items.find(q => st(q) && st(q).l === "x");
+  const unans = s.items.find(q => !st(q));
+  let msg;
+  if (t.clear) msg = s.n === S.length ? "全 " + S.length + " ステージのうち、このステージはクリアです。" + (S.every(x => stageStat(x).clear) ? "全ステージクリア。171 問すべてを最後に正解した状態です。" : "まだクリアしていないステージがあります。上の段の番号から確認できます。") : "このステージはクリアです。初見正解は " + t.first + " / " + t.n + " 問でした。";
+  else if (unans) msg = "まだ解いていない問題が " + (t.n - t.done) + " 問あります。";
+  else msg = "× の問題が " + (t.n - t.fixed) + " 問残っています。解説を読み直してから解き直すと、クリアになります。";
+  $("#end").innerHTML = '<div class="endcard"><h3>ステージ' + s.n + ' の最後の問題です</h3><p>' + msg + '</p><div class="row">' +
+    (firstNx ? '<button class="btn" id="e-redo">×を解き直す</button>' : '') +
+    (unans ? '<button class="btn" id="e-un">未回答の問題へ</button>' : '') +
+    (nxt ? '<button class="btn primary" id="e-next">ステージ' + nxt.n + '「' + nxt.name + '」へ進む</button>' : '') + '</div>' +
+    (nxt && !t.clear ? '<p class="hint">クリアしていなくても先へ進めます。× は後でまとめて解き直せます。</p>' : '') + '</div>';
+  if (firstNx) $("#e-redo").onclick = () => show(firstNx.id, true);
+  if (unans) $("#e-un").onclick = () => show(unans.id, true);
+  if (nxt) $("#e-next").onclick = () => show(nxt.items[0].id, true);
+}
+
+function answer(p, k){
+  document.querySelectorAll(".choice").forEach(b => {
+    b.disabled = true;
+    if (b.dataset.k === p.ans) b.classList.add("right");
+    else if (b.dataset.k === k) b.classList.add("wrong");
+  });
+  $("#peek").parentElement.hidden = true;
+  const ok = k === p.ans;
+  if (k) {
+    const r = progress[p.id];
+    progress[p.id] = r ? {f: r.f, l: ok ? "o" : "x"} : {f: ok ? "o" : "x", l: ok ? "o" : "x"};
+    save();
+  }
+  $("#result").innerHTML = '<div class="result">' +
+    (k ? '<span class="badge ' + (ok ? "o" : "x") + '">' + (ok ? "正解" : "不正解") + '</span>' : '') +
+    '<span>正解は ' + p.ans + '</span><button class="btn" id="retry">もう一度解く</button>' +
+    '<button class="btn primary" id="toex">解説へ ↓</button></div>';
+  $("#retry").onclick = () => show(p.id, false);
+  $("#toex").onclick = () => $("#ex").scrollIntoView({behavior:"smooth"});
+  refresh(p);
+  renderEx(p);
+  renderEnd(p);
+}
+
+function renderEx(p){
+  const steps = p.steps.map((s, n) =>
+    '<div class="step"><div class="n">' + (n + 1) + '</div><div class="body"><h3>' + s.t + '</h3>' + s.h +
+    (s.map && p.code ? '<div class="legend"><span><i style="background:var(--hot)"></i>空欄・核心</span><span><i style="background:var(--read)"></i>読む行</span><span><i></i>薄い文字は読み飛ばしてよい</span>' + (p.fill ? '<span><span class="fillin">緑の下線</span>は正解を入れたところ</span>' : '') + '</div>' + codeBlock(p, true) : '') +
+    '</div></div>').join("");
+  $("#ex").innerHTML = '<h2>解説</h2><p class="lead">' + (p.sec ? "設問 → 選択肢の違い → 本文の読む場所 → 根拠 → 消去 の順で読みます。" : "設問 → 選択肢の違い → 目的 → 読む範囲 → 小さいトレース → 消去 の順で読みます。") + '</p>' + steps +
+    '<dl class="sum"><dt>型</dt><dd>' + p.sum.type + '</dd><dt>ラベル</dt><dd>' + p.sum.label + '</dd><dt>次に使えること</dt><dd>' + p.sum.tip + '</dd></dl>';
+  $("#ex").hidden = false;
+}
+
+function jumpFrom(list, pred){
+  const i = list.findIndex(p => p.id === curId);
+  for (let k = 1; k <= list.length; k++) { const p = list[(i + k) % list.length]; if (pred(p)) return show(p.id, true); }
+}
+$("#resume").onclick = () => {
+  const p = P.find(q => !st(q)) || P.find(q => st(q).l === "x");
+  if (p) show(p.id, true);
+};
+$("#redo").onclick = () => { const s = P.find(p => p.id === curId).stage; jumpFrom(s.items, q => st(q) && st(q).l === "x"); };
+
+let start = P.find(q => !st(q)) ? P.find(q => !st(q)).id : P[0].id;
+try { const h = location.hash.slice(1); if (P.some(p => p.id === h)) start = h; } catch(e) {}
+show(start, false);
+</script>
+
+</body></html>
