@@ -1,6 +1,6 @@
 # 学習ツール集
 
-ネットワーク、データベース、基本情報技術者試験の学習用に作った、ブラウザで動く 4 つのツールです。
+ネットワーク、データベース、PowerShell、基本情報技術者試験の学習用に作った、ブラウザで動く 5 つのツールです。
 
 **公開ページ：** https://yamagata-inaka.github.io/study-tools/
 
@@ -9,6 +9,7 @@
 | [ルータ基本設定ドリル](https://yamagata-inaka.github.io/study-tools/router-drill/) | Cisco IOS ルータの初期設定を疑似コンソールで練習する |
 | [サブネット計算ドリル](https://yamagata-inaka.github.io/study-tools/subnet-drill/) | CCNA のサブネット計算を反復練習する |
 | [MySQL 基本操作ドリル](https://yamagata-inaka.github.io/study-tools/mysql-drill/) | MySQL の接続、SQL、トランザクション、権限を疑似コンソールで練習する |
+| [PowerShell 修練帳](https://yamagata-inaka.github.io/study-tools/powershell-drill/) | PowerShell のコマンドからサーバー管理、リモート実行までを解説と模擬コンソールで学ぶ |
 | [科目B 完走コース](https://yamagata-inaka.github.io/study-tools/kamoku-b/) | 基本情報技術者試験 科目B を 171 問・16 ステージで対策する |
 
 ## 制作の役割分担
@@ -68,6 +69,17 @@
 
 基本操作の範囲だけを扱う模擬で、実機の完全な再現ではありません。ビュー、トリガー、ストアドプロシージャ、ウィンドウ関数などは実行できません。`root` の `SHOW GRANTS` は簡略化しています。
 
+## PowerShell 修練帳
+
+**目的：** Bash との違いであるオブジェクトのパイプラインを軸に、PowerShell の基本からサーバー管理、リモート実行までを順番に身につけられるようにします。
+
+- **章ごとの流れ：** 全 8 章を「解説 → 実技 → 確認テスト」の順に進めます。実技は 30 問、確認テストは 24 問で、付録に Bash との対応表があります。
+- **パターン照合による判定：** 入力を正規化してから正規表現で照合します。エイリアス、大文字小文字、空白の違いは同じものとして扱います。
+- **つまずきの指摘：** `==` や `>` での比較、`grep` などの Bash のコマンド、`Format-Table` の後ろにつないだパイプなど、よくある誤りには理由を示します。
+- **Windows 専用の課題の表示：** PowerShell 7 は複数の OS で動きますが、Windows でしか使えないコマンドの課題には `WIN` の印を付けています。
+
+PowerShell の実行環境ではありません。実技の出力は用意したサンプルで、入力したコマンドは実行しません。判定や出力を実物の PowerShell と比較する検証はしていません。
+
 ## 科目B 完走コース
 
 **目的：** 基本情報技術者試験 科目B を、易しい問題から公開問題まで順番に進めて完走できるようにします。
@@ -95,4 +107,4 @@
 
 これらのファイルには、独立行政法人情報処理推進機構（IPA）が公表した試験問題とサンプル問題が含まれ、その著作権は IPA にあります。利用する場合は [IPA の案内](https://www.ipa.go.jp/shiken/faq.html)に従ってください。
 
-本リポジトリは個人の学習用制作物で、IPA、Cisco Systems および Oracle とは関係ありません。Cisco、Cisco IOS、CCNA は Cisco Systems, Inc. の商標または登録商標です。MySQL は Oracle およびその関連会社の商標または登録商標です。
+本リポジトリは個人の学習用制作物で、IPA、Cisco Systems、Oracle および Microsoft とは関係ありません。Cisco、Cisco IOS、CCNA は Cisco Systems, Inc. の商標または登録商標です。MySQL は Oracle およびその関連会社の商標または登録商標です。PowerShell、Windows は Microsoft グループの企業の商標です。

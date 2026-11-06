@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="PowerShell のコマンドからサーバー管理、リモート実行までを、解説と模擬コンソールと確認テストで学ぶ教材です。">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>PowerShell 修練帳</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=JetBrains+Mono:wght@400;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: 左に章ナビ、右に「解説 → 実技（模擬コンソール）→ 確認テスト」の縦一列。コンソールは旧 PowerShell の紺色を両テーマで固定 */
+:root{
+  --bg:#EEF1F7; --surface:#FFFFFF; --ink:#141C2E; --muted:#56617A; --line:#D5DCE8;
+  --accent:#2450C8; --accent-soft:#E2E9FB;
+  --ok:#1D7443; --ok-soft:#E0F2E7; --warn:#8F5400; --warn-soft:#FAEFD8; --bad:#B4232F; --bad-soft:#FBE4E6;
+  --term:#012456; --term-line:#0E3473; --t-fg:#EEEDF0; --t-dim:#9EA8C0; --t-cmd:#F9F1A5; --t-str:#6CC8EC;
+  --t-var:#45DB72; --t-kw:#9BE6AC; --t-type:#B9C9FF; --t-err:#FF9090;
+  --f-disp:'Dela Gothic One','Zen Kaku Gothic New',sans-serif;
+  --f-body:'Zen Kaku Gothic New','Hiragino Sans','Yu Gothic',sans-serif;
+  --f-mono:'JetBrains Mono',Consolas,'Zen Kaku Gothic New',monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B1220; --surface:#121B2E; --ink:#E3E8F3; --muted:#98A4BE; --line:#26324C;
+  --accent:#8CADFF; --accent-soft:#1B2A52;
+  --ok:#62D393; --ok-soft:#11301F; --warn:#F2B654; --warn-soft:#34280F; --bad:#FF7E89; --bad-soft:#3A161B;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B1220; --surface:#121B2E; --ink:#E3E8F3; --muted:#98A4BE; --line:#26324C;
+  --accent:#8CADFF; --accent-soft:#1B2A52;
+  --ok:#62D393; --ok-soft:#11301F; --warn:#F2B654; --warn-soft:#34280F; --bad:#FF7E89; --bad-soft:#3A161B;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15.5px;line-height:1.8;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 64px}
+.wrap{max-width:1160px;margin:0 auto}
+code,kbd{font-family:var(--f-mono);font-size:.88em}
+p code,li code,td code,.note code,.task code{background:var(--accent-soft);color:var(--ink);padding:.05em .4em;border-radius:4px;white-space:nowrap}
+a{color:var(--accent)}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* header */
+.top{padding-block:40px 28px;display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:32px;align-items:end;border-bottom:1px solid var(--line);margin-bottom:32px}
+.top h1{font-family:var(--f-disp);font-weight:400;font-size:clamp(30px,5vw,46px);line-height:1.15;margin:0 0 14px;letter-spacing:.01em;text-wrap:balance}
+.top h1 .ps{font-family:var(--f-mono);font-weight:600;font-size:.5em;color:var(--accent);vertical-align:.35em;margin-right:.4em;letter-spacing:0}
+.top h1 .cur{display:inline-block;width:.45em;height:.08em;background:var(--accent);margin-left:.15em;vertical-align:baseline;animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+@media (prefers-reduced-motion: reduce){.top h1 .cur{animation:none}}
+.top p{margin:0;max-width:62ch;color:var(--muted)}
+.top p + p{margin-top:8px;font-size:13.5px}
+.prog{display:grid;gap:8px}
+.prog .lbl{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.prog .lbl b{font-family:var(--f-mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .4s}
+.reset{justify-self:end;background:none;border:0;color:var(--muted);font-size:12px;text-decoration:underline;cursor:pointer;padding:0}
+.reset.armed{color:var(--bad)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:232px minmax(0,1fr);gap:44px;align-items:start}
+nav.toc{position:sticky;top:calc(16px + env(safe-area-inset-top, 0px));display:flex;flex-direction:column;gap:2px}
+.toc a{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:8px 10px;border-radius:8px;text-decoration:none;color:var(--muted);font-size:14px;line-height:1.45}
+.toc a:hover{background:var(--surface);color:var(--ink)}
+.toc a.on{background:var(--surface);color:var(--ink);font-weight:700;box-shadow:inset 3px 0 0 var(--accent)}
+.toc .n{font-family:var(--f-mono);font-size:12px;color:var(--accent)}
+.toc .c{font-family:var(--f-mono);font-size:11.5px;font-variant-numeric:tabular-nums}
+.toc .c.done{color:var(--ok)}
+.toc .sep{height:1px;background:var(--line);margin:8px 10px}
+@media (max-width:880px){
+  .top{grid-template-columns:minmax(0,1fr);gap:20px}
+  .layout{grid-template-columns:minmax(0,1fr);gap:20px}
+  nav.toc{position:static;flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:6px}
+  .toc a{grid-template-columns:auto auto;white-space:nowrap;background:var(--surface);border:1px solid var(--line)}
+  .toc a .t{display:none}
+  .toc a.on .t{display:inline}
+  .toc a .c{display:none}
+  .toc .sep{display:none}
+}
+
+/* スマホ幅では長いインラインコードを折り返し、画面の横はみ出しを防ぐ */
+@media (max-width:880px){
+  p code,li code,.note code,.task code{white-space:normal;overflow-wrap:anywhere}
+}
+
+/* article */
+main{min-width:0}
+.chap-head{margin-bottom:8px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;color:var(--accent);text-transform:uppercase}
+main h2{font-family:var(--f-disp);font-weight:400;font-size:clamp(24px,3.4vw,32px);line-height:1.3;margin:4px 0 12px;text-wrap:balance}
+.lead{font-size:16.5px;max-width:64ch;margin:0 0 28px}
+main h3{font-size:18px;font-weight:700;margin:36px 0 10px;text-wrap:balance;display:flex;align-items:center;gap:10px}
+main h3::before{content:"";width:10px;height:10px;background:var(--accent);border-radius:2px;flex:none}
+main p{max-width:66ch;margin:0 0 14px}
+.sect-title{font-family:var(--f-disp);font-weight:400;font-size:21px;margin:56px 0 6px;padding-top:24px;border-top:1px solid var(--line)}
+.sect-sub{color:var(--muted);font-size:14px;margin:0 0 18px}
+
+.code{position:relative;background:var(--term);color:var(--t-fg);border-radius:10px;margin:0 0 16px;border:1px solid var(--term-line)}
+.code .lang{position:absolute;top:8px;right:12px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;color:var(--t-dim);text-transform:uppercase}
+.code pre{margin:0;padding:16px 18px;overflow-x:auto;font-family:var(--f-mono);font-size:13.5px;line-height:1.7}
+.code.bash{background:#1d1f24;border-color:#30333b}
+.h-cmd{color:var(--t-cmd)} .h-par{color:var(--t-dim)} .h-str{color:var(--t-str)} .h-var{color:var(--t-var)}
+.h-kw{color:var(--t-kw)} .h-com{color:#7E9A86;font-style:italic} .h-num{color:#FFFFFF} .h-type{color:var(--t-type)}
+
+.note{border-left:3px solid var(--accent);background:var(--surface);padding:12px 16px;border-radius:0 8px 8px 0;margin:0 0 16px;max-width:70ch;font-size:14.5px}
+.note b{display:block;font-size:12.5px;color:var(--accent);letter-spacing:.04em;margin-bottom:2px}
+
+.tbl{overflow-x:auto;margin:0 0 18px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;color:var(--muted);font-weight:500;background:color-mix(in srgb, var(--surface) 70%, var(--bg))}
+tr:last-child td{border-bottom:0}
+td code{white-space:nowrap}
+
+.win{display:inline-block;font-family:var(--f-mono);font-size:10.5px;font-weight:600;letter-spacing:.06em;padding:0 6px;border-radius:4px;border:1px solid var(--warn);color:var(--warn);line-height:1.6;vertical-align:.1em}
+
+/* drills */
+.drill{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin:0 0 18px}
+.drill-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.dnum{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.chip{font-size:11.5px;font-weight:700;padding:1px 9px;border-radius:99px;background:var(--line);color:var(--muted)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.task{margin:0 0 12px;max-width:none}
+.term{background:var(--term);border-radius:8px;border:1px solid var(--term-line);font-family:var(--f-mono);font-size:13.5px;color:var(--t-fg);overflow:hidden}
+.term .log{padding:12px 14px 0;overflow-x:auto;max-height:380px;overflow-y:auto}
+.term .log:empty{display:none}
+.term .log pre{margin:0 0 10px;font-family:inherit;white-space:pre;line-height:1.6}
+.term .log .err{color:var(--t-err)}
+.term .log .dim{color:var(--t-dim)}
+.line{display:flex;align-items:center;gap:8px;padding:10px 14px;flex-wrap:wrap}
+.prompt{color:var(--t-fg);white-space:nowrap}
+.line input{flex:1 1 200px;min-width:0;background:transparent;border:0;color:var(--t-cmd);font:inherit;padding:2px 0;caret-color:var(--t-cmd)}
+.line input:focus{outline:none}
+.term:focus-within{border-color:var(--t-str)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:6px 14px;border-radius:8px;font-size:13.5px;cursor:pointer;line-height:1.5}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:700}
+.fb{margin-top:10px;font-size:14px;padding:10px 14px;border-radius:8px;max-width:none}
+.fb.ok{background:var(--ok-soft);color:var(--ok)}
+.fb.ng{background:var(--warn-soft);color:var(--warn)}
+.fb.info{background:var(--accent-soft);color:var(--ink)}
+.fb code{background:transparent;padding:0;font-weight:600}
+
+/* quiz */
+.quiz{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin:0 0 14px}
+.quiz .q{font-weight:700;margin:0 0 10px;max-width:none}
+.opts{display:grid;gap:8px}
+.opt{text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:9px 14px;border-radius:8px;font-size:14.5px;cursor:pointer;line-height:1.55}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt:disabled{cursor:default}
+.opt.right{border-color:var(--ok);background:var(--ok-soft);color:var(--ok);font-weight:700}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+.ex{margin-top:10px;font-size:14px;color:var(--muted);max-width:none}
+
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;flex-wrap:wrap}
+.pager a{display:block;padding:12px 16px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--surface);min-width:0}
+.pager a small{display:block;color:var(--muted);font-size:12px}
+.pager a:hover{border-color:var(--accent)}
+.pager .nx{margin-left:auto;text-align:right}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1><span class="ps">PS&gt;</span>PowerShell 修練帳<span class="cur" aria-hidden="true"></span></h1>
+      <p>コマンドの規則からパイプライン、サーバー管理、リモート実行までを 8 章で学びます。各章は「解説 → 実技（模擬コンソールに入力）→ 確認テスト」の順です。</p>
+      <p>PowerShell 7 は Windows / Linux / macOS で動きます。<span class="win">WIN</span> の付いた課題は Windows 専用のコマンドです。実技の出力はサンプルで、入力はパターン照合で判定します（エイリアスや大文字小文字の違いは許容）。</p>
+    </div>
+    <div class="prog">
+      <div class="lbl"><span>進捗（実技＋テスト）</span><b id="pgText">0 / 0</b></div>
+      <div class="bar"><i id="pgBar"></i></div>
+      <button class="reset" id="reset" type="button">進捗をリセット</button>
+    </div>
+  </header>
+  <div class="layout">
+    <nav class="toc" id="toc" aria-label="章"></nav>
+    <main id="main"></main>
+  </div>
+</div>
+
+<script>
+const R = String.raw;
+
+/* ---------- 判定用ユーティリティ ---------- */
+const ALIAS = {gci:'get-childitem',ls:'get-childitem',dir:'get-childitem','?':'where-object',where:'where-object','%':'foreach-object',foreach:'foreach-object',select:'select-object',sort:'sort-object',measure:'measure-object',gps:'get-process',ps:'get-process',gsv:'get-service',gc:'get-content',cat:'get-content',type:'get-content',gm:'get-member',gcm:'get-command',ft:'format-table',fl:'format-list',echo:'write-output',write:'write-output',sls:'select-string',gal:'get-alias',help:'get-help',man:'get-help',tnc:'test-netconnection',icm:'invoke-command',ipcsv:'import-csv',epcsv:'export-csv',spps:'stop-process',kill:'stop-process',gcim:'get-ciminstance',irm:'invoke-restmethod',iwr:'invoke-webrequest'};
+const KNOWN = new Set('get-command get-help get-alias get-member get-process stop-process start-process get-service start-service stop-service restart-service where-object select-object sort-object measure-object foreach-object group-object get-childitem get-content set-content add-content select-string get-item new-item copy-item move-item remove-item test-path set-location get-location write-output write-host write-warning write-error import-csv export-csv convertto-json convertfrom-json convertto-csv format-table format-list format-wide out-file out-gridview invoke-restmethod invoke-webrequest test-netconnection test-connection resolve-dnsname get-nettcpconnection get-netipaddress get-netadapter get-netroute get-ciminstance get-winevent get-executionpolicy set-executionpolicy invoke-command enter-pssession new-pssession get-verb update-help get-date start-transcript stop-transcript unblock-file debug-process wait-process get-psdrive tee-object compare-object get-random start-sleep get-history clear-host get-unique'.split(' '));
+const MISSING = {grep:'Select-String',tail:'Get-Content -Tail',head:'Select-Object -First',wc:'Measure-Object',awk:'Select-Object / ForEach-Object',sed:'-replace 演算子',ifconfig:'Get-NetIPAddress',dig:'Resolve-DnsName',ss:'Get-NetTCPConnection',touch:'New-Item',which:'Get-Command'};
+
+function canon(s){
+  s = s.replace(/[\u201c\u201d]/g,'"').replace(/[\u2018\u2019]/g,"'").replace(/\u3000/g,' ');
+  s = s.trim().toLowerCase().replace(/\$psitem\b/g,'$_');
+  s = s.replace(/\s+/g,' ');
+  s = s.replace(/\s*([|{}(),=;])\s*/g,'$1');
+  s = s.replace(/;+$/,'');
+  s = s.replace(/(^|[|;{(])([a-z][\w-]*|\?|%)(?=[ |;{}]|$)/g,(m,p,w)=>p+(ALIAS[w]||w));
+  return s;
+}
+const P = n => R`['"]?(\.[\\/])?` + n.replace(/\./g,'\\.') + R`['"]?`;
+const wh = (prop, op, val, str) => R`where-object(( -filterscript)?\{\$_\.` + prop + ' ' + op + ' ' + (str ? R`['"]` + val + R`['"]` : val) + R`\}| (-property )?` + prop + ' ' + op + ' ' + (str ? R`['"]?` + val + R`['"]?` : val) + ')';
+const SORTD = p => R`sort-object( (-property )?` + p + R` -desc\w*| -desc\w* (-property )?` + p + ')';
+const SELF = (props, n) => R`select-object( (-property )?` + props + ' -first ' + n + '| -first ' + n + ' (-property )?' + props + ')';
+const RX = (...parts) => new RegExp('^' + parts.join('') + '$');
+
+const ERR_NR = t => `${t}: The term '${t}' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.`;
+
+const GTRAPS = [
+  {re:/format-(table|list|wide)\|/, msg:'Format-Table / Format-List の後ろはパイプでつながないでください。Format-* は表示用の書式オブジェクトを出力するため、元のプロパティが失われます。整形はパイプラインの最後だけで行います。'},
+  {re:/==/, msg:'PowerShell の等価比較は <code>-eq</code> です。<code>==</code> は使えません。'},
+  {re:/</, out:"ParserError: The '<' operator is reserved for future use.", err:true, msg:'<code>&lt;</code> は予約されていて使えません。「より小さい」は <code>-lt</code>、「以下」は <code>-le</code> です。'},
+  {re:/>/, msg:'<code>&gt;</code> はリダイレクト（ファイルへの書き出し）です。比較には <code>-gt</code>（より大きい）や <code>-ge</code>（以上）を使います。この入力では数字の名前のファイルが作られるだけで、条件判定になりません。'}
+];
+
+function judge(d, raw){
+  const c = canon(raw);
+  if(!c) return null;
+  for(const item of d.ok){
+    const re = item instanceof RegExp ? item : item.re;
+    if(re.test(c)){
+      if(d.check){ return d.check(raw, c); }
+      return {ok:true, out: item.out || d.out};
+    }
+  }
+  for(const t of (d.traps||[])) if(t.re.test(c)) return {ok:false, msg:t.msg, out:t.out, err:t.err};
+  for(const t of GTRAPS) if(t.re.test(c)) return {ok:false, msg:t.msg, out:t.out, err:t.err};
+  for(const seg of c.split('|')){
+    const m = seg.match(/^([a-z][a-z0-9]*(-[a-z0-9]+)?)(?=[ (]|$)/);
+    if(!m) continue;
+    const tok = m[1];
+    if(MISSING[tok]) return {ok:false, out:ERR_NR(tok), err:true, msg:`<code>${tok}</code> は Windows の PowerShell にはありません。対応するのは <code>${MISSING[tok]}</code> です。`};
+    if(tok.includes('-') && !KNOWN.has(tok)) return {ok:false, out:ERR_NR(tok), err:true, msg:'コマンド名を確認してください。綴りの誤りか、存在しないコマンドです。'};
+  }
+  return {ok:false, msg:'コマンドとしては成立していますが、課題の条件と一致しません。ヒントを確認してください。'};
+}
+
+/* ---------- 章データ ---------- */
+const PROC_HEAD = R` NPM(K)    PM(M)      WS(M)     CPU(s)      Id  SI ProcessName
+ ------    -----      -----     ------      --  -- -----------`;
+
+const CH = [
+{ id:'basics', title:'コマンドの形と調べ方',
+  lead:'PowerShell のコマンド（コマンドレット）は「動詞-名詞」で統一されています。名前の規則と、知らないコマンドを自分で調べる方法を最初に押さえます。',
+  body:[
+    {h:'動詞-名詞という規則'},
+    {p:'<code>Get-Process</code>、<code>Stop-Process</code>、<code>Get-Service</code>、<code>Restart-Service</code> のように、<b>動詞は決められた一覧から選び</b>、名詞は単数形で対象を表します。動詞の一覧は <code>Get-Verb</code> で確認できます。規則が揃っているので、「サービスを再起動したい」なら <code>Restart-Service</code> だろう、と名前を推測できます。'},
+    {code:R`Get-Verb | Where-Object Group -eq 'Lifecycle'   # Start, Stop, Restart などの動詞`},
+    {h:'調べるための 3 つのコマンド'},
+    {table:{head:['コマンド','役割','例'], rows:[
+      ['Get-Command','コマンドを探す','Get-Command *service*'],
+      ['Get-Help','使い方を読む','Get-Help Get-Service -Examples'],
+      ['Get-Member','出力の中身（型・プロパティ）を調べる','Get-Service | Get-Member']], code:[0,2]}},
+    {p:'Get-Help は、最初に管理者権限で <code>Update-Help</code> を実行してヘルプ本体をダウンロードしておくと詳しい内容が表示されます。<code>Get-Help コマンド名 -Online</code> でブラウザ版のドキュメントも開けます。'},
+    {h:'エイリアス'},
+    {p:'<code>ls</code>、<code>cd</code>、<code>cat</code> のような短い名前はエイリアス（別名）で、実体は <code>Get-ChildItem</code>、<code>Set-Location</code>、<code>Get-Content</code> です。対話中はエイリアスで素早く打ち、スクリプトには正式名を書くのが一般的です。'},
+    {note:'PowerShell 7 は Linux / macOS でも動きます。ただし Linux 上では <code>ls</code> や <code>cat</code> など、既存のコマンドと名前が衝突するエイリアスは定義されておらず、ネイティブの ls が実行されます。', label:'Linux 版での注意'},
+    {h:'パラメーター'},
+    {p:'パラメーターは <code>-Name</code> のようにハイフンで始め、大文字小文字は区別しません。一意に決まる範囲で省略でき（<code>-Desc</code> → <code>-Descending</code>）、位置パラメーターは名前そのものを省けます。'},
+    {code:R`Get-Process -Name pwsh
+Get-Process pwsh                  # -Name は位置パラメーターなので省略可
+Get-ChildItem -Path C:\Windows -File`}
+  ],
+  drills:[
+    {task:'名詞が <code>Process</code> のコマンドをすべて一覧表示してください。',
+     ok:[RX(R`get-command -noun ['"]?process['"]?`), RX(R`get-command (-name )?['"]?\*-?process\*?['"]?`)],
+     hint:'Get-Command には名詞で絞り込む <code>-Noun</code> パラメーターがあります。ワイルドカード <code>*process*</code> でも探せます。',
+     ans:'Get-Command -Noun Process',
+     out:R`CommandType     Name              Version    Source
+-----------     ----              -------    ------
+Cmdlet          Debug-Process     7.0.0.0    Microsoft.PowerShell.Management
+Cmdlet          Get-Process       7.0.0.0    Microsoft.PowerShell.Management
+Cmdlet          Start-Process     7.0.0.0    Microsoft.PowerShell.Management
+Cmdlet          Stop-Process      7.0.0.0    Microsoft.PowerShell.Management
+Cmdlet          Wait-Process      7.0.0.0    Microsoft.PowerShell.Management`},
+    {task:'<code>Get-Process</code> の使用例（Examples）だけを表示してください。',
+     ok:[RX(R`get-help (-name )?get-process -ex(a(m(p(l(es?)?)?)?)?)?`)],
+     hint:'Get-Help にコマンド名を渡し、<code>-Examples</code> を付けます。',
+     ans:'Get-Help Get-Process -Examples',
+     out:R`NAME
+    Get-Process
+
+SYNOPSIS
+    Gets the processes that are running on the local computer.
+
+    -------- Example 1: Get a list of all active processes on the local computer --------
+
+    Get-Process
+
+    -------- Example 2: Get all available data about one or more processes --------
+
+    Get-Process winword, explorer | Format-List *
+    ...`},
+    {task:'<code>gci</code> が何というコマンドの別名（エイリアス）かを調べてください。',
+     ok:[RX(R`get-alias (-name )?['"]?gci['"]?`),
+         {re:RX(R`get-alias -definition ['"]?get-childitem['"]?`), out:R`CommandType     Name                                   Version    Source
+-----------     ----                                   -------    ------
+Alias           dir -> Get-ChildItem
+Alias           gci -> Get-ChildItem
+Alias           ls -> Get-ChildItem`}],
+     hint:'エイリアスを調べるコマンドは <code>Get-Alias</code> です。',
+     ans:'Get-Alias gci',
+     out:R`CommandType     Name                                   Version    Source
+-----------     ----                                   -------    ------
+Alias           gci -> Get-ChildItem`}
+  ],
+  quiz:[
+    {q:'コマンドレットの命名規則として正しいものは？', opts:['動詞-名詞（例: Get-Process）','名詞-動詞（例: Process-Get）','小文字の短縮名（例: getproc）'], a:0, ex:'動詞は Get-Verb で一覧できる承認済みの動詞から選び、名詞は単数形で対象を表します。'},
+    {q:'Linux 版 PowerShell 7 で <code>ls</code> と入力すると、何が実行される？', opts:['Get-ChildItem','ネイティブの /bin/ls','エラーになる'], a:1, ex:'Linux / macOS では、既存コマンドと衝突する ls や cat などのエイリアスは定義されていません。'},
+    {q:'あるコマンドの出力がどんなプロパティを持つかを調べるには？', opts:['Get-Help','Get-Command','Get-Member'], a:2, ex:'出力をパイプで Get-Member に渡すと、型名とプロパティ・メソッドの一覧が表示されます。'}
+  ]},
+
+{ id:'pipeline', title:'オブジェクトとパイプライン',
+  lead:'PowerShell と Bash の最大の違いです。パイプ <code>|</code> を流れるのはテキストではなく、プロパティを持った .NET オブジェクトです。',
+  body:[
+    {h:'テキストではなくオブジェクト'},
+    {p:'Bash で「メモリ使用量の多いプロセス」を取り出すときは、<code>ps</code> の出力から何列目かを <code>sort -k</code> や <code>awk</code> で切り出します。PowerShell では各プロセスが <code>Name</code>、<code>Id</code>、<code>CPU</code>、<code>WS</code>（使用メモリ）などのプロパティを持つオブジェクトとして流れるので、列の位置ではなくプロパティ名で扱えます。'},
+    {code:R`ps aux --sort=-rss | head -n 6 | awk '{print $11, $6}'`, lang:'bash'},
+    {code:R`Get-Process | Sort-Object WS -Descending | Select-Object Name, WS -First 5`},
+    {p:'画面に表のように見えているのは、パイプラインの最後でオブジェクトが表示用に整形された結果です。途中では常にオブジェクトのまま受け渡されます。'},
+    {h:'中身を調べる: Get-Member'},
+    {p:'どんなプロパティがあるかわからないときは、パイプの途中に <code>Get-Member</code> を挟みます。TypeName（型名）と、Property（値）、Method（操作）などの一覧が表示されます。'},
+    {code:R`Get-Process | Get-Member -MemberType Property`},
+    {h:'よく使う 5 つ'},
+    {table:{head:['コマンド','役割','Bash で近いもの'], rows:[
+      ['Where-Object','条件でオブジェクト（行）を絞る','grep'],
+      ['Select-Object','プロパティ（列）や件数を選ぶ','cut, head'],
+      ['Sort-Object','並べ替え','sort'],
+      ['Measure-Object','件数・合計・平均など','wc'],
+      ['ForEach-Object','1 件ずつ処理する','while read, xargs']], code:[0]}},
+    {h:'$_ は「いま流れてきた 1 件」'},
+    {p:'Where-Object や ForEach-Object の <code>{ }</code>（スクリプトブロック）の中では、<code>$_</code>（別名 <code>$PSItem</code>）が現在のオブジェクトを指します。条件が単純なら、スクリプトブロックを使わない簡易構文でも書けます。'},
+    {code:R`Get-Service | Where-Object { $_.Status -eq 'Running' }
+Get-Service | Where-Object Status -eq 'Running'      # 簡易構文
+Get-ChildItem -File | ForEach-Object { $_.Name.ToUpper() }`},
+    {h:'計算プロパティ'},
+    {p:'Select-Object にハッシュテーブルを渡すと、新しいプロパティをその場で作れます。バイト単位の WS を MB に変換する例です。'},
+    {code:R`Get-Process | Select-Object Name, @{ Name = 'MemMB'; Expression = { [math]::Round($_.WS / 1MB, 1) } }`},
+    {note:'<code>1KB</code>、<code>1MB</code>、<code>1GB</code> は PowerShell の数値リテラルで、それぞれ 1024、1048576、1073741824 を表します。'}
+  ],
+  drills:[
+    {task:'<code>Get-Process</code> が返すオブジェクトのメンバー（プロパティやメソッド）を調べてください。',
+     ok:[RX(R`get-process\|get-member( -membertype \w+)?`)],
+     hint:'出力をパイプで <code>Get-Member</code> に渡します。',
+     ans:'Get-Process | Get-Member',
+     out:R`   TypeName: System.Diagnostics.Process
+
+Name             MemberType     Definition
+----             ----------     ----------
+Handles          AliasProperty  Handles = Handlecount
+Name             AliasProperty  Name = ProcessName
+WS               AliasProperty  WS = WorkingSet64
+Kill             Method         void Kill(), void Kill(bool entireProcessTree)
+Refresh          Method         void Refresh()
+Id               Property       int Id {get;}
+StartTime        Property       datetime StartTime {get;}
+WorkingSet64     Property       long WorkingSet64 {get;}
+CPU              ScriptProperty System.Object CPU {get=$this.TotalProcessorTime.TotalSeconds;}
+...`},
+    {task:'CPU 時間（<code>CPU</code> プロパティ、単位は秒）が 100 を超えるプロセスだけを表示してください。',
+     ok:[RX('get-process\\|', wh('cpu','-gt','100'))],
+     hint:'<code>Where-Object { $_.CPU -gt 100 }</code> の形です。「より大きい」は <code>-gt</code> です。',
+     ans:'Get-Process | Where-Object { $_.CPU -gt 100 }',
+     out:PROC_HEAD + R`
+    142   402.18     584.45     812.53   11240   1 chrome
+     98   311.07     475.14     356.20    6024   1 Code
+     71   188.92     287.49     143.88    9416   1 Discord
+     64    96.33     125.00     118.41    5532   1 explorer`},
+    {task:'WS（使用メモリ）が大きい順に並べ、上位 5 件の <code>Name</code> と <code>WS</code> だけを表示してください。',
+     ok:[RX('get-process\\|', SORTD('(ws|workingset64)'), '\\|', SELF('name,(ws|workingset64)', 5))],
+     hint:'<code>Sort-Object</code> に <code>-Descending</code>、続けて <code>Select-Object</code> でプロパティと <code>-First 5</code> を指定します。',
+     ans:'Get-Process | Sort-Object WS -Descending | Select-Object Name, WS -First 5',
+     out:R`Name            WS
+----            --
+chrome   612843520
+Code     498221056
+Discord  301457408
+pwsh     142606336
+explorer 131072000`},
+    {task:'全プロセスの WS の合計を求めてください。',
+     ok:[RX(R`get-process\|measure-object( (-property )?(ws|workingset64) -sum| -sum (-property )?(ws|workingset64))`)],
+     hint:'<code>Measure-Object</code> に対象のプロパティと <code>-Sum</code> を指定します。',
+     ans:'Get-Process | Measure-Object WS -Sum',
+     out:R`Count             : 142
+Average           :
+Sum               : 6842515456
+Maximum           :
+Minimum           :
+StandardDeviation :
+Property          : WS`},
+    {task:'すべてのプロセス名を大文字にして表示してください（<code>ForEach-Object</code> を使用）。',
+     ok:[RX(R`get-process\|foreach-object( -process)?\{\$_\.(name|processname)\.toupper\(\)\}`)],
+     hint:'<code>$_.Name</code> は文字列なので、.NET のメソッド <code>ToUpper()</code> が使えます。',
+     ans:'Get-Process | ForEach-Object { $_.Name.ToUpper() }',
+     out:R`APPLICATIONFRAMEHOST
+CHROME
+CHROME
+CODE
+DISCORD
+EXPLORER
+PWSH
+...`}
+  ],
+  quiz:[
+    {q:'PowerShell のパイプラインを流れるものは？', opts:['テキストの行','.NET オブジェクト','JSON 文字列'], a:1, ex:'オブジェクトなので、列の位置ではなくプロパティ名で扱えます。'},
+    {q:'Where-Object のスクリプトブロック内で、現在のオブジェクトを表す変数は？', opts:['$this','$0','$_（または $PSItem）'], a:2, ex:'$_ と $PSItem は同じものです。'},
+    {q:'<code>Get-Process | Select-Object Name</code> の出力は？', opts:['Name プロパティだけを持つ新しいオブジェクト','名前の文字列の配列','元の Process オブジェクトそのまま'], a:0, ex:'Select-Object は指定したプロパティだけを持つ新しいオブジェクトを作ります。値だけ取り出したい場合は <code>-ExpandProperty Name</code> を使います。'}
+  ]},
+
+{ id:'files', title:'ファイル操作とプロバイダー',
+  lead:'ファイルとフォルダの操作に加えて、環境変数やレジストリをファイルと同じ操作で扱う「プロバイダー」の考え方を学びます。',
+  body:[
+    {h:'主なコマンド'},
+    {table:{head:['コマンド','役割','Bash で近いもの'], rows:[
+      ['Get-ChildItem','一覧・検索','ls, find'],
+      ['Get-Content','読む','cat, tail'],
+      ['Set-Content','書く（上書き）','>'],
+      ['Add-Content','追記','>>'],
+      ['Select-String','文字列検索','grep'],
+      ['New-Item','作成','touch, mkdir'],
+      ['Copy-Item / Move-Item / Remove-Item','コピー・移動・削除','cp, mv, rm'],
+      ['Test-Path','存在確認','test -e']], code:[0]}},
+    {code:R`Get-ChildItem -Path . -Recurse -Filter *.log -File
+Get-Content .\error.log -Tail 20 -Wait          # tail -f 相当
+Select-String -Path .\*.log -Pattern 'timeout' -CaseSensitive
+New-Item -ItemType Directory -Path .\backup
+Copy-Item .\scripts -Destination .\backup -Recurse
+if (Test-Path .\backup\scripts) { 'コピー済み' }`},
+    {p:'Select-String の結果も文字列ではなく MatchInfo オブジェクトで、<code>Filename</code>、<code>LineNumber</code>、<code>Line</code> などのプロパティを持ちます。'},
+    {h:'プロバイダーと PSDrive'},
+    {p:'PowerShell はファイルシステム以外のデータも「ドライブ」として見せます。一覧は <code>Get-PSDrive</code> で確認できます。どのドライブでも <code>Get-ChildItem</code> や <code>Get-Item</code> がそのまま使えます。'},
+    {code:R`Get-ChildItem Env:                     # 環境変数の一覧
+$env:PATH                              # 個別の環境変数
+$env:APP_MODE = 'debug'                # このセッションだけ設定
+Get-ChildItem HKLM:\SOFTWARE            # レジストリ（Windows のみ）
+Get-ChildItem Cert:\CurrentUser\My      # 証明書ストア（Windows のみ）`},
+    {note:'Windows でも <code>/</code> 区切りが使えます。カレントディレクトリは <code>.</code>、ホームは <code>~</code> です。空白を含むパスは引用符で囲みます。', label:'パスの書き方'},
+    {h:'文字コード'},
+    {p:'Windows PowerShell 5.1 では、Set-Content の既定はシステムの ANSI コードページ（日本語環境では Shift_JIS）、Out-File の既定は UTF-16LE です。PowerShell 7 では既定が BOM なし UTF-8 に統一されています。5.1 で書き出すときは <code>-Encoding UTF8</code> を明示します（5.1 では BOM 付きになります）。'}
+  ],
+  drills:[
+    {task:'カレントディレクトリ以下から、拡張子 <code>.log</code> のファイルを再帰的に探してください。',
+     ok:[RX(R`get-childitem( -recurse( -filter| -include| -path)? ['"]?\*\.log['"]?| (-filter |-include |-path )?['"]?\*\.log['"]? -recurse)( -file)?`)],
+     hint:'<code>Get-ChildItem</code> に <code>-Recurse</code> と <code>-Filter *.log</code> を付けます。',
+     ans:'Get-ChildItem -Recurse -Filter *.log',
+     out:R`    Directory: C:\Users\yamagata\lab
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a---          2026/11/05    20:14          48213 access.log
+-a---          2026/11/05    21:02           2310 error.log
+
+    Directory: C:\Users\yamagata\lab\old
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a---          2026/10/28     9:30          10442 access-20261028.log`},
+    {task:'<code>error.log</code> の末尾 5 行を表示してください。',
+     ok:[RX('get-content( -path)? ', P('error.log'), R` -(tail|last) 5`), RX(R`get-content -(tail|last) 5( -path)? `, P('error.log'))],
+     hint:'<code>Get-Content</code> の <code>-Tail</code> パラメーターで行数を指定します。',
+     ans:R`Get-Content .\error.log -Tail 5`,
+     out:R`2026-11-05 20:58:12 [WARN]  upstream response slow: 2.81s
+2026-11-05 20:59:40 [ERROR] connect() to 10.0.0.21:5432 failed (timeout)
+2026-11-05 21:00:02 [INFO]  retry 1/3
+2026-11-05 21:00:05 [ERROR] connect() to 10.0.0.21:5432 failed (timeout)
+2026-11-05 21:02:44 [INFO]  db connection restored`},
+    {task:'<code>access.log</code> から <code>404</code> を含む行を検索してください（grep 相当）。',
+     ok:[RX(R`select-string( -pattern)? ['"]?404['"]?( -path)? `, P('access.log')), RX(R`select-string -path `, P('access.log'), R` -pattern ['"]?404['"]?`), RX('get-content( -path)? ', P('access.log'), R`\|select-string( -pattern)? ['"]?404['"]?`)],
+     hint:'<code>Select-String</code> に <code>-Path</code> と <code>-Pattern</code> を指定します。',
+     ans:R`Select-String -Path .\access.log -Pattern '404'`,
+     out:R`access.log:118:203.0.113.24 - - [05/Nov/2026:20:41:07 +0900] "GET /admin HTTP/1.1" 404 512
+access.log:342:198.51.100.7 - - [05/Nov/2026:20:52:31 +0900] "GET /wp-login.php HTTP/1.1" 404 512
+access.log:351:198.51.100.7 - - [05/Nov/2026:20:52:33 +0900] "GET /.env HTTP/1.1" 404 512`},
+    {task:'環境変数 <code>PATH</code> の値を表示してください。',
+     ok:[RX(R`\$env:path`), {re:RX(R`get-(childitem|item) env:\\?path`), out:R`Name                           Value
+----                           -----
+Path                           C:\Program Files\PowerShell\7;C:\WINDOWS\system32;C:\WINDOWS;C:\Program Files\Git\cmd;…`}],
+     hint:'環境変数は <code>$env:変数名</code> で参照できます。',
+     ans:'$env:PATH',
+     out:R`C:\Program Files\PowerShell\7;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\yamagata\AppData\Local\Microsoft\WindowsApps`}
+  ],
+  quiz:[
+    {q:'<code>Get-ChildItem Env:</code> で一覧されるものは？', opts:['環境変数','カレントのファイル','レジストリ'], a:0, ex:'Env: は環境変数のプロバイダーが提供するドライブです。'},
+    {q:'<code>tail -f</code> に相当するものは？', opts:['Get-Content -Head 10','Get-Content -Tail 10 -Wait','Select-String -Follow'], a:1, ex:'-Wait を付けると、ファイルへの追記を待ち続けて表示します。'},
+    {q:'Set-Content と Add-Content の違いは？', opts:['違いはない','Set-Content は上書き、Add-Content は追記','Set-Content は追記、Add-Content は上書き'], a:1, ex:'Bash の > と >> に対応します。'}
+  ]},
+
+{ id:'vars', title:'変数・型・演算子',
+  lead:'変数は <code>$</code> で始まり、型は代入した値から自動で決まります。比較演算子が記号ではなく <code>-eq</code> などの英字である点が、最初のつまずきどころです。',
+  body:[
+    {h:'変数と型'},
+    {code:R`$count = 10                 # int
+$name  = 'web01'            # string
+$ports = 80, 443, 8080      # 配列
+$range = 1..5               # 1, 2, 3, 4, 5
+[int]$n = '42'              # 型を指定して変換
+$count.GetType().Name       # Int32`},
+    {h:'文字列: ダブルクォートとシングルクォート'},
+    {p:'ダブルクォートの中では変数と <code>$( )</code>（部分式）が展開され、シングルクォートの中は書いたとおりの文字になります。'},
+    {code:R`$name = 'web01'
+"host: $name"               # host: web01
+'host: $name'               # host: $name
+"cpu: $($proc.CPU) 秒"      # プロパティは $( ) で囲む`},
+    {note:'<code>"$proc.CPU"</code> と書くと <code>$proc</code> だけが展開され、後ろに文字列 <code>.CPU</code> がそのまま付きます。'},
+    {h:'比較演算子'},
+    {table:{head:['演算子','意味'], rows:[
+      ['-eq / -ne','等しい / 等しくない'],
+      ['-gt / -ge','より大きい / 以上'],
+      ['-lt / -le','より小さい / 以下'],
+      ['-like','ワイルドカード（* と ?）で一致'],
+      ['-match','正規表現で一致（結果は $Matches に入る）'],
+      ['-contains','配列が値を含む'],
+      ['-in','値が配列に含まれる']], code:[0]}},
+    {p:'文字列の比較は<b>既定で大文字小文字を区別しません</b>。区別したいときは <code>-ceq</code>、<code>-clike</code>、<code>-cmatch</code> のように c を付けます。'},
+    {p:'<code>&gt;</code> はリダイレクト（ファイルへの書き出し）なので比較には使えません。<code>if ($a &gt; 5)</code> は「5」という名前のファイルを作るだけで、条件として機能しません。'},
+    {code:R`'ABC' -eq 'abc'                         # True
+'ABC' -ceq 'abc'                        # False
+'web01' -like 'web*'                    # True
+'error: code=503' -match 'code=(\d+)'   # True
+$Matches[1]                             # 503
+443 -in $ports                          # True`},
+    {h:'ハッシュテーブルとカスタムオブジェクト'},
+    {code:R`$srv = @{ Name = 'web01'; IP = '10.0.0.11' }
+$srv.IP                       # 10.0.0.11
+$srv['Name']                  # web01
+$obj = [PSCustomObject]@{ Name = 'web01'; Port = 443 }
+$obj | Select-Object Port     # パイプラインで扱えるオブジェクトになる`}
+  ],
+  drills:[
+    {task:'変数 <code>$name</code> に <code>yamagata</code> を代入し、続けて <code>Hello, $name</code> を変数を展開して表示してください。2 つの文は <code>;</code> で区切って 1 行で書けます。',
+     ok:[RX(R`\$name=['"]yamagata['"];((write-(output|host)) )?"hello,\$name!?"`)],
+     traps:[{re:/'hello,\$name/, out:'Hello, $name', msg:'シングルクォートの中では変数は展開されません。ダブルクォートを使います。'}],
+     hint:'変数を展開するにはダブルクォート <code>"Hello, $name"</code> を使います。',
+     ans:R`$name = 'yamagata'; "Hello, $name"`,
+     out:'Hello, yamagata'},
+    {task:'文字列 <code>\'web01.example.com\'</code> が <code>web*</code> というワイルドカードに一致するかを判定してください。',
+     ok:[RX(R`['"]web01\.example\.com['"] -like ['"]web\*['"]`)],
+     traps:[{re:/-eq ['"]web\*/, out:'False', msg:'<code>-eq</code> はワイルドカードを解釈せず、文字どおり「web*」と比較します。ワイルドカードは <code>-like</code> です。'},
+            {re:/-match ['"]web\*/, msg:'<code>-match</code> は正規表現です。正規表現の <code>*</code> は「直前の文字の 0 回以上の繰り返し」なので意味が変わります。ワイルドカードは <code>-like</code> です。'}],
+     hint:'ワイルドカードで比較する演算子は <code>-like</code> です。',
+     ans:R`'web01.example.com' -like 'web*'`,
+     out:'True'},
+    {task:'文字列 <code>\'192.168.1.10\'</code> が「数字.数字.数字.数字」の形かを、<code>-match</code>（正規表現）で判定してください。',
+     ok:[RX(R`['"]192\.168\.1\.10['"] -match ['"].+['"]`)],
+     check(raw){
+       const m = raw.match(/-match\s*(['"])(.+)\1\s*;?\s*$/i);
+       if(!m) return {ok:false, msg:'正規表現を引用符で囲んでください。'};
+       let re; try{ re = new RegExp(m[2], 'i'); }catch(e){ return {ok:false, out:`ParserError: Invalid pattern '${m[2]}'`, err:true, msg:'正規表現の書き方に誤りがあります。'}; }
+       const r = re.test('192.168.1.10');
+       if(!r) return {ok:false, out:'False', msg:'False になりました。<code>\\d+</code> は「1 文字以上の数字」、<code>\\.</code> は「ドットそのもの」を表します。'};
+       const strict = /^\^/.test(m[2]) && /\$$/.test(m[2]);
+       return {ok:true, out:'True', note: strict ? '' : '補足: <code>^</code> と <code>$</code> で先頭と末尾を固定しないと、「abc192.168.1.10xyz」のような文字列にも一致します。'};
+     },
+     hint:'例: <code>\'^\\d+\\.\\d+\\.\\d+\\.\\d+$\'</code>。<code>\\d</code> は数字、<code>\\.</code> はドット、<code>^</code> と <code>$</code> は先頭と末尾です。',
+     ans:R`'192.168.1.10' -match '^\d+\.\d+\.\d+\.\d+$'`,
+     out:'True'},
+    {task:'作成済みのハッシュテーブル <code>$srv = @{ Name = \'web01\'; IP = \'10.0.0.11\' }</code> から、IP の値を取り出してください。',
+     ok:[RX(R`\$srv(\.ip|\[['"]ip['"]\])`)],
+     hint:'キーは <code>$srv.キー</code> または <code>$srv[\'キー\']</code> で参照します。',
+     ans:'$srv.IP',
+     out:'10.0.0.11'}
+  ],
+  quiz:[
+    {q:'<code>$name = \'web01\'; \'host: $name\'</code> の出力は？', opts:['host: web01','host: $name','エラー'], a:1, ex:'シングルクォート内は展開されません。'},
+    {q:'<code>\'ABC\' -eq \'abc\'</code> の結果は？', opts:['True','False','エラー'], a:0, ex:'既定では大文字小文字を区別しません。区別するには -ceq を使います。'},
+    {q:'<code>if ($a &gt; 5) { ... }</code> を実行するとどうなる？', opts:['$a が 5 より大きければ実行される','「5」という名前のファイルに $a が書き出され、条件は偽になる','構文エラーで止まる'], a:1, ex:'> はリダイレクトです。比較には -gt を使います。'}
+  ]},
+
+{ id:'control', title:'制御構文・関数・エラー処理',
+  lead:'条件分岐、繰り返し、関数、エラー処理です。作業をスクリプト（.ps1）にまとめて自動化する段階で必要になります。',
+  body:[
+    {h:'条件分岐'},
+    {code:R`if ($cpu -gt 90) { 'CRITICAL' }
+elseif ($cpu -gt 70) { 'WARNING' }
+else { 'OK' }
+
+switch -Wildcard ($hostname) {
+    'web*'  { 'Web サーバー' }
+    'db*'   { 'DB サーバー' }
+    default { '不明' }
+}`},
+    {h:'繰り返し'},
+    {p:'foreach 文は対象をすべてメモリに読み込んでから回すため高速です。ForEach-Object はパイプラインで 1 件ずつ受け取りながら処理するため、大量のデータでもメモリを抑えられます。'},
+    {code:R`foreach ($s in 'web01', 'web02') { Test-Connection $s -Count 1 }
+1..3 | ForEach-Object { "試行 $_ 回目" }
+for ($i = 0; $i -lt 3; $i++) { $i }`},
+    {h:'関数とパラメーター'},
+    {code:R`function Test-Port {
+    param(
+        [Parameter(Mandatory)][string]$ComputerName,
+        [int]$Port = 443
+    )
+    $r = Test-NetConnection -ComputerName $ComputerName -Port $Port -WarningAction SilentlyContinue
+    [PSCustomObject]@{ Host = $ComputerName; Port = $Port; Open = $r.TcpTestSucceeded }
+}
+Test-Port -ComputerName web01 -Port 22`},
+    {p:'関数名も動詞-名詞にしておくと、標準のコマンドレットと同じ感覚で使えます。<code>return</code> を書かなくても、関数の中で出力されたものはすべて戻り値になります。'},
+    {h:'エラー処理: 終了エラーと非終了エラー'},
+    {p:'PowerShell のエラーには「終了エラー」と「非終了エラー」があります。ファイルが見つからないなど多くのエラーは非終了エラーで、表示されるだけで処理は続き、<code>try/catch</code> には入りません。catch で捕まえるには <code>-ErrorAction Stop</code> を付けて終了エラーに変えます。'},
+    {code:R`try {
+    Get-Content .\config.json -ErrorAction Stop | ConvertFrom-Json
+}
+catch {
+    Write-Warning "設定ファイルを読めません: $($_.Exception.Message)"
+}
+finally {
+    'チェック終了'
+}`},
+    {note:'スクリプト全体でエラー時に止めたい場合は、先頭に <code>$ErrorActionPreference = \'Stop\'</code> を書きます。'},
+    {h:'スクリプトの実行'},
+    {p:'.ps1 ファイルはカレントディレクトリにあっても名前だけでは実行されず、<code>.\\backup.ps1</code> のようにパスを付けます。同名の悪意あるスクリプトがカレントに置かれていても、意図せず実行しないための仕様です。'}
+  ],
+  drills:[
+    {task:'<code>1</code> から <code>5</code> までの各数値を 2 倍して表示してください（範囲演算子 <code>..</code> と ForEach-Object を使用）。',
+     ok:[RX(R`1\.\.5\|foreach-object( -process)?\{\$_ ?\* ?2\}`), RX(R`foreach\(\$(\w+) in 1\.\.5\)\{\$\1 ?\* ?2\}`)],
+     hint:'<code>1..5</code> をパイプで ForEach-Object に渡し、<code>$_ * 2</code> を出力します。',
+     ans:'1..5 | ForEach-Object { $_ * 2 }',
+     out:'2\n4\n6\n8\n10'},
+    {task:'<code>$cpu</code>（値は 92）が 80 より大きければ <code>HIGH</code>、そうでなければ <code>OK</code> を表示する if 文を書いてください。',
+     ok:[RX(R`if\(\$cpu -gt 80\)\{((write-(output|host)) )?['"]high['"]\}else\{((write-(output|host)) )?['"]ok['"]\}`)],
+     hint:'形は <code>if (条件) { ... } else { ... }</code> です。「より大きい」は <code>-gt</code>。',
+     ans:R`if ($cpu -gt 80) { 'HIGH' } else { 'OK' }`,
+     out:'HIGH'},
+    {task:'存在しないファイル <code>nofile.txt</code> を Get-Content で読み、エラーを <code>try/catch</code> で捕まえて、catch の中で <code>$_</code> を使ってエラーメッセージを表示してください。',
+     ok:[RX(R`try\{get-content (?=[^}]*nofile\.txt)[^}]*-(erroraction|ea) ['"]?stop['"]?[^}]*\}catch\{[^}]*\$_[^}]*\}`)],
+     traps:[{re:/^try\{get-content(?![^}]*-(erroraction|ea))/, err:true,
+             out:R`Get-Content: Cannot find path 'C:\Users\yamagata\lab\nofile.txt' because it does not exist.`,
+             msg:'エラーは表示されましたが、catch ブロックは実行されていません。Get-Content のこのエラーは非終了エラーなので、<code>-ErrorAction Stop</code> を付けて終了エラーにする必要があります。'},
+            {re:/catch\{(?![^}]*\$_)/, msg:'catch の中で <code>$_</code>（捕まえたエラー）を出力してください。'}],
+     hint:'<code>try { Get-Content .\\nofile.txt -ErrorAction Stop } catch { ... }</code> の形です。',
+     ans:R`try { Get-Content .\nofile.txt -ErrorAction Stop } catch { "読めません: $($_.Exception.Message)" }`,
+     out:R`読めません: Cannot find path 'C:\Users\yamagata\lab\nofile.txt' because it does not exist.`}
+  ],
+  quiz:[
+    {q:'Get-Content の「ファイルが見つからない」エラーを try/catch で捕まえるには？', opts:['何もしなくても捕まえられる','-ErrorAction Stop を付ける','-Force を付ける'], a:1, ex:'非終了エラーは catch に入らないため、-ErrorAction Stop で終了エラーに変えます。'},
+    {q:'foreach 文と ForEach-Object の違いとして正しいものは？', opts:['違いはない','foreach 文は全件をメモリに読み込んでから回し、ForEach-Object はパイプラインで 1 件ずつ処理する','ForEach-Object の方が常に速い'], a:1, ex:'速度は foreach 文が有利なことが多く、メモリ使用量は ForEach-Object が有利です。'},
+    {q:'カレントにある backup.ps1 を実行する書き方は？', opts:['backup.ps1','.\\backup.ps1','run backup.ps1'], a:1, ex:'カレントのスクリプトは名前だけでは実行されない仕様です。'}
+  ]},
+
+{ id:'output', title:'出力の整形と変換',
+  lead:'オブジェクトを CSV、JSON、表に変換する方法です。「Format-* はパイプラインの最後だけ」という規則が重要です。',
+  body:[
+    {h:'Format-* はパイプラインの最後だけ'},
+    {p:'Format-Table や Format-List は画面表示用の書式オブジェクトを出力します。後ろに Export-Csv や Where-Object をつなぐと、元のプロパティは失われています。データとして加工するのは Select-Object、見た目を整えるのが Format-*、と役割を分けます。'},
+    {code:R`Get-Service | Select-Object Name, Status | Export-Csv .\svc.csv    # 正しい
+Get-Service | Format-Table Name, Status | Export-Csv .\svc.csv     # 壊れた CSV になる
+Get-Process | Format-List Name, Id, Path                         # 表示だけなら問題なし`},
+    {h:'CSV'},
+    {code:R`$servers = Import-Csv .\servers.csv        # 各行がオブジェクトになる
+$servers | Where-Object role -eq 'db'
+$servers | Export-Csv .\out.csv -NoTypeInformation`},
+    {note:'<code>-NoTypeInformation</code> は、Windows PowerShell 5.1 で 1 行目に型情報が書き込まれるのを防ぎます。PowerShell 7 では既定で書き込まれません。'},
+    {h:'JSON と Web API'},
+    {p:'Invoke-RestMethod は応答の JSON を自動でオブジェクトに変換するので、そのままプロパティを参照できます。'},
+    {code:R`$r = Invoke-RestMethod https://api.github.com/repos/PowerShell/PowerShell/releases/latest
+$r.tag_name
+Get-Process | Select-Object Name, Id -First 3 | ConvertTo-Json
+Get-Content .\config.json -Raw | ConvertFrom-Json`},
+    {note:'ConvertTo-Json は既定で深さ 2 までしか展開せず、それより深い部分は文字列になります。入れ子の多いデータでは <code>-Depth 5</code> などを指定します。'},
+    {h:'ファイルへの出力'},
+    {code:R`Get-Process | Out-File .\proc.txt        # 画面と同じ見た目で保存
+'done' | Add-Content .\log.txt
+Get-Service | Out-GridView                # GUI の表で確認（Windows のみ）`}
+  ],
+  drills:[
+    {task:'<code>servers.csv</code>（列: name, ip, role, os）を読み込み、role 列が <code>web</code> の行だけを表示してください。',
+     ok:[RX('import-csv( -path)? ', P('servers.csv'), '\\|', wh('role','-eq','web',true))],
+     traps:[{re:/\{\$_\.role -eq web\}/, msg:'スクリプトブロックの中では文字列を引用符で囲みます。<code>web</code> のままだとコマンド名として解釈されます。'}],
+     hint:'<code>Import-Csv</code> の結果を <code>Where-Object</code> に渡します。',
+     ans:R`Import-Csv .\servers.csv | Where-Object { $_.role -eq 'web' }`,
+     out:R`name  ip        role os
+----  --        ---- --
+web01 10.0.0.11 web  Windows Server 2022
+web02 10.0.0.12 web  Ubuntu 24.04`},
+    {task:'CPU 時間の大きい上位 3 プロセスの <code>Name</code> と <code>CPU</code> を JSON に変換してください。',
+     ok:[RX('get-process\\|', SORTD('cpu'), '\\|', SELF('name,cpu', 3), R`\|convertto-json( -depth \d+| -compress)*`)],
+     hint:'第 2 章の並べ替えと選択に続けて <code>ConvertTo-Json</code> をつなぎます。',
+     ans:'Get-Process | Sort-Object CPU -Descending | Select-Object Name, CPU -First 3 | ConvertTo-Json',
+     out:R`[
+  {
+    "Name": "chrome",
+    "CPU": 812.53125
+  },
+  {
+    "Name": "Code",
+    "CPU": 356.203125
+  },
+  {
+    "Name": "Discord",
+    "CPU": 143.875
+  }
+]`},
+    {task:'サービスの一覧を <code>services.csv</code> に保存してください。',
+     ok:[RX('get-service(\\|select-object [^|]+)?\\|export-csv( -path)? ', P('services.csv'), R`( -notypeinformation| -encoding \w+)*`)],
+     hint:'<code>Get-Service</code> の結果をそのまま <code>Export-Csv</code> に渡します。',
+     ans:R`Get-Service | Export-Csv .\services.csv -NoTypeInformation`,
+     out:'（出力なし。services.csv が作成されました）'}
+  ],
+  quiz:[
+    {q:'<code>Get-Service | Format-Table | Export-Csv x.csv</code> の問題点は？', opts:['特に問題はない','Format-Table は書式用オブジェクトを出力するため、CSV の中身が壊れる','Export-Csv はパイプ入力を受け付けない'], a:1, ex:'Format-* は最後にだけ使い、データを選ぶには Select-Object を使います。'},
+    {q:'JSON を返す API を Invoke-RestMethod で呼ぶと、結果は？', opts:['JSON 文字列のまま返る','自動でオブジェクトに変換される','ファイルに保存される'], a:1, ex:'そのため $r.tag_name のようにすぐプロパティを参照できます。'},
+    {q:'ConvertTo-Json で入れ子の深い部分が文字列になってしまう。対処は？', opts:['-Depth を増やす','-Compress を付ける','ConvertTo-Csv を使う'], a:0, ex:'既定の深さは 2 です。'}
+  ]},
+
+{ id:'admin', title:'サーバー管理とネットワーク',
+  lead:'インフラの業務で実際によく使うコマンドです。サービス、ハードウェア情報、イベントログ、ネットワーク診断を扱います。',
+  body:[
+    {h:'サービス'},
+    {p:'Windows のサービスは、Linux の systemd ユニットに相当する常駐プログラムです。サービスには Name（内部名）と DisplayName（表示名）があり、コマンドでは Name を使います。たとえば IIS（Windows の Web サーバー）の公開機能は Name が <code>W3SVC</code>、表示名が「World Wide Web Publishing Service」です。'},
+    {code:R`Get-Service -Name W3SVC, WinRM
+Restart-Service -Name Spooler
+Get-Service | Where-Object { $_.Status -eq 'Stopped' -and $_.StartType -eq 'Automatic' }`},
+    {note:'最後の例は「自動起動に設定されているのに止まっているサービス」を探すもので、障害調査の最初によく使います。'},
+    {h:'CIM: OS とハードウェアの情報'},
+    {p:'CIM（Common Information Model）は OS やハードウェアの情報を共通の形式で取得するための標準で、WMI はその Windows 実装です。クラス名を指定して情報を取り出します。<code>Win32_OperatingSystem</code> は OS、<code>Win32_LogicalDisk</code> はドライブ、<code>Win32_ComputerSystem</code> は機種やメモリ量の情報です。'},
+    {code:R`Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, LastBootUpTime
+Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3" |
+    Select-Object DeviceID, @{ n = 'FreeGB'; e = { [math]::Round($_.FreeSpace / 1GB, 1) } }`},
+    {note:'<code>DriveType=3</code> はローカルの固定ディスクを表します（2 はリムーバブル、4 はネットワークドライブ、5 は光学ドライブ）。'},
+    {h:'イベントログ'},
+    {p:'Windows のイベントログは、Linux の journald や syslog に相当します。主なログは System（OS やドライバー）、Application（アプリケーション）、Security（ログオンなどの監査記録）の 3 つです。'},
+    {code:R`Get-WinEvent -LogName System -MaxEvents 20
+Get-WinEvent -FilterHashtable @{ LogName = 'System'; Level = 2; StartTime = (Get-Date).AddDays(-1) }`},
+    {note:'Level 2 はエラーです（1 が重大、3 が警告、4 が情報）。古い Get-EventLog は PowerShell 7 では削除されているので、Get-WinEvent を使います。'},
+    {h:'ネットワーク'},
+    {table:{head:['目的','PowerShell','従来のコマンド','Linux'], rows:[
+      ['IP アドレス確認','Get-NetIPAddress -AddressFamily IPv4','ipconfig','ip addr'],
+      ['疎通確認（ICMP）','Test-Connection host -Count 2','ping','ping'],
+      ['ポート疎通（TCP）','Test-NetConnection host -Port 443','telnet','nc -zv'],
+      ['名前解決','Resolve-DnsName host -Type A','nslookup','dig'],
+      ['待ち受けポート','Get-NetTCPConnection -State Listen','netstat -an','ss -tln'],
+      ['ルーティング表','Get-NetRoute','route print','ip route']], code:[1,2,3]}},
+    {p:'Test-Connection 以外は Windows 専用です。Test-NetConnection の <code>TcpTestSucceeded</code> が True なら、相手のポートで TCP の 3 ウェイハンドシェイク（SYN → SYN/ACK → ACK による接続確立）が成立したことを意味します。ping（ICMP）が通っても、ファイアウォールでポートが閉じていればサービスには接続できません。そのため、サービスの疎通はポート単位で確認します。'},
+    {code:R`Get-NetTCPConnection -State Listen |
+    Select-Object LocalAddress, LocalPort, OwningProcess,
+        @{ n = 'Process'; e = { (Get-Process -Id $_.OwningProcess).Name } } |
+    Sort-Object LocalPort`},
+    {note:'LocalAddress が <code>0.0.0.0</code>（IPv6 では <code>::</code>）なら全インターフェースで待ち受け、<code>127.0.0.1</code> なら自分自身からの接続だけを受け付けています。OwningProcess はポートを開いているプロセスの ID で、Get-Process と組み合わせるとプログラム名まで分かります。'}
+  ],
+  drills:[
+    {win:true, task:'状態（<code>Status</code>）が <code>Running</code> のサービスだけを表示してください。',
+     ok:[RX('get-service\\|', wh('status','-eq','running',true))],
+     hint:'Where-Object で <code>Status</code> プロパティを比較します。',
+     ans:R`Get-Service | Where-Object { $_.Status -eq 'Running' }`,
+     out:R`Status   Name               DisplayName
+------   ----               -----------
+Running  Dhcp               DHCP Client
+Running  Dnscache           DNS Client
+Running  EventLog           Windows Event Log
+Running  sshd               OpenSSH SSH Server
+Running  Spooler            Print Spooler
+Running  W32Time            Windows Time
+Running  WinRM              Windows Remote Management (WS-Manag…
+...`},
+    {win:true, task:'<code>example.com</code> の 443 番ポートに TCP 接続できるかを確認してください。',
+     ok:[RX(R`test-netconnection( -computername)? ['"]?example\.com['"]? -port 443`), RX(R`test-netconnection -port 443( -computername)? ['"]?example\.com['"]?`)],
+     hint:'<code>Test-NetConnection</code> に宛先と <code>-Port</code> を指定します。',
+     ans:'Test-NetConnection example.com -Port 443',
+     out:R`ComputerName     : example.com
+RemoteAddress    : 203.0.113.10
+RemotePort       : 443
+InterfaceAlias   : イーサネット
+SourceAddress    : 192.168.10.23
+TcpTestSucceeded : True`},
+    {win:true, task:'<code>example.com</code> の名前解決をしてください（nslookup 相当）。',
+     ok:[RX(R`resolve-dnsname( -name)? ['"]?example\.com['"]?( -type (a|aaaa|a_aaaa))?`)],
+     hint:'名前解決のコマンドレットは <code>Resolve-DnsName</code> です。',
+     ans:'Resolve-DnsName example.com',
+     out:R`Name                                           Type   TTL   Section    IPAddress
+----                                           ----   ---   -------    ---------
+example.com                                    AAAA   300   Answer     2001:db8::10
+example.com                                    A      300   Answer     203.0.113.10`},
+    {win:true, task:'待ち受け（Listen）状態の TCP ポートを一覧表示してください（netstat 相当）。',
+     ok:[RX(R`get-nettcpconnection -state ['"]?listen['"]?(\|sort-object (-property )?localport)?`)],
+     hint:'<code>Get-NetTCPConnection</code> の <code>-State</code> で絞り込みます。',
+     ans:'Get-NetTCPConnection -State Listen',
+     out:R`LocalAddress  LocalPort RemoteAddress RemotePort State  AppliedSetting OwningProcess
+------------  --------- ------------- ---------- -----  -------------- -------------
+::            445       ::            0          Listen                4
+0.0.0.0       5985      0.0.0.0       0          Listen                4
+0.0.0.0       135       0.0.0.0       0          Listen                1088
+0.0.0.0       22        0.0.0.0       0          Listen                3120
+127.0.0.1     6463      0.0.0.0       0          Listen                9416`},
+    {win:true, task:'論理ドライブ（<code>Win32_LogicalDisk</code> クラス）の情報を CIM で取得してください。',
+     ok:[RX(R`get-ciminstance( -classname)? ['"]?win32_logicaldisk['"]?( -filter ['"]drivetype=3['"])?`)],
+     hint:'<code>Get-CimInstance</code> にクラス名を指定します。',
+     ans:'Get-CimInstance Win32_LogicalDisk',
+     out:R`DeviceID DriveType ProviderName VolumeName Size         FreeSpace
+-------- --------- ------------ ---------- ----         ---------
+C:       3                      OS         510770802688 187364048896
+D:       3                      Data       2000396742656 1406571085824`}
+  ],
+  quiz:[
+    {q:'ping に加えて特定ポートへの TCP 接続も確認できるのは？', opts:['Test-Connection','Test-NetConnection -Port','Resolve-DnsName'], a:1, ex:'結果の TcpTestSucceeded で、TCP の接続確立に成功したかが分かります。'},
+    {q:'<code>netstat -an</code> の LISTEN 行に相当するのは？', opts:['Get-NetTCPConnection -State Listen','Get-NetAdapter','Get-NetRoute'], a:0, ex:'OwningProcess からポートを開いているプロセスも特定できます。'},
+    {q:'PowerShell 7 で Get-EventLog を使おうとすると？', opts:['問題なく使える','存在しない。Get-WinEvent を使う','管理者権限なら使える'], a:1, ex:'Get-EventLog は Windows PowerShell 5.1 までのコマンドです。'}
+  ]},
+
+{ id:'safety', title:'安全な実行とリモート管理',
+  lead:'本番環境で事故を起こさないための仕組みと、複数のサーバーを一度に操作するリモート実行です。',
+  body:[
+    {h:'実行ポリシー'},
+    {p:'実行ポリシーは、スクリプトを実行してよい条件を決める設定です。Windows クライアントの既定は Restricted（スクリプトを実行しない）、Windows Server の既定は RemoteSigned（インターネットから入手したスクリプトには署名が必要）です。'},
+    {code:R`Get-ExecutionPolicy -List
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+Unblock-File .\downloaded.ps1      # ダウンロード由来の印を外す（中身を確認してから）`},
+    {note:'実行ポリシーはセキュリティ境界ではなく、うっかり実行を防ぐための安全装置です。<code>-ExecutionPolicy Bypass</code> で簡単に回避できるため、これだけで攻撃は防げません。'},
+    {h:'-WhatIf と -Confirm'},
+    {p:'変更を伴うコマンドレットの多くは <code>-WhatIf</code>（実行せず、何が起きるかを表示する）と <code>-Confirm</code>（1 件ごとに確認する）に対応しています。条件やワイルドカードで削除・停止をする前に、まず -WhatIf で対象を確認します。'},
+    {code:R`Get-ChildItem .\logs -Filter *.log |
+    Where-Object LastWriteTime -lt (Get-Date).AddDays(-30) |
+    Remove-Item -WhatIf
+Stop-Service -Name Spooler -Confirm`},
+    {h:'リモート実行'},
+    {p:'PowerShell Remoting は WinRM（Windows Remote Management。HTTP は 5985 番、HTTPS は 5986 番ポート）を使って、他のコンピューターでコマンドを実行します。PowerShell 7 では SSH 経由のリモート実行も使えるため、Linux サーバーにも同じ方法で接続できます。'},
+    {code:R`Enter-PSSession -ComputerName web01             # 対話的に接続（ssh に近い）
+Invoke-Command -ComputerName web01, web02 -ScriptBlock { Get-Service W3SVC }
+Invoke-Command -HostName ubuntu01 -UserName yamagata -ScriptBlock { uname -a }   # SSH 経由（PS 7）`},
+    {p:'Invoke-Command は複数のサーバーで並列に実行し、結果に <code>PSComputerName</code> プロパティを付けて返します。どのサーバーの結果か区別できるので、そのまま Sort-Object や Export-Csv につなげられます。'},
+    {h:'作業記録'},
+    {code:R`Start-Transcript -Path .\work-20261105.log
+# ... 作業 ...
+Stop-Transcript`},
+    {p:'セッション中の入力と出力をすべてテキストファイルに記録します。本番作業の証跡として使えます。'}
+  ],
+  drills:[
+    {task:'<code>notepad</code> プロセスを停止すると何が起きるかを、実際には停止せずに確認してください。',
+     ok:[RX(R`stop-process( -name)? ['"]?notepad['"]? -whatif`), RX(R`get-process( -name)? ['"]?notepad['"]?\|stop-process -whatif`)],
+     traps:[{re:/stop-process(?!.*-whatif)/, msg:'この入力では実際に停止されます（模擬環境なので何も起きていません）。<code>-WhatIf</code> を付けてください。'}],
+     hint:'<code>Stop-Process</code> に <code>-WhatIf</code> を付けます。',
+     ans:'Stop-Process -Name notepad -WhatIf',
+     out:R`What if: Performing the operation "Stop-Process" on target "notepad (8812)".`},
+    {task:'実行ポリシーをスコープごとに表示してください。',
+     ok:[RX(R`get-executionpolicy -list`)],
+     hint:'<code>Get-ExecutionPolicy</code> に一覧表示のパラメーターを付けます。',
+     ans:'Get-ExecutionPolicy -List',
+     out:R`        Scope ExecutionPolicy
+        ----- ---------------
+MachinePolicy       Undefined
+   UserPolicy       Undefined
+      Process       Undefined
+  CurrentUser    RemoteSigned
+ LocalMachine    RemoteSigned`},
+    {win:true, task:'<code>web01</code> と <code>web02</code> の両方で、<code>Get-Service W3SVC</code> をリモート実行してください。',
+     ok:[RX(R`invoke-command (?=.*-(computername|cn) ['"]?web01['"]?,['"]?web02['"]?)(?=.*-scriptblock\{get-service( -name)? ['"]?w3svc['"]?\}).*`)],
+     hint:'<code>Invoke-Command</code> に <code>-ComputerName</code>（カンマ区切り）と <code>-ScriptBlock { }</code> を指定します。',
+     ans:'Invoke-Command -ComputerName web01, web02 -ScriptBlock { Get-Service W3SVC }',
+     out:R`Status   Name               DisplayName                           PSComputerName
+------   ----               -----------                           --------------
+Running  W3SVC              World Wide Web Publishing Service     web01
+Running  W3SVC              World Wide Web Publishing Service     web02`}
+  ],
+  quiz:[
+    {q:'実行ポリシーの位置付けとして正しいものは？', opts:['マルウェアを確実に防ぐセキュリティ機能','うっかり実行を防ぐための安全装置で、セキュリティ境界ではない','PowerShell 7 では廃止された'], a:1, ex:'-ExecutionPolicy Bypass などで容易に回避できます。'},
+    {q:'<code>-WhatIf</code> を付けたときの動作は？', opts:['実行前に 1 件ずつ確認する','実際には実行せず、何が起きるかを表示する','エラーを無視して実行する'], a:1, ex:'1 件ずつ確認するのは -Confirm です。'},
+    {q:'Invoke-Command -ComputerName の結果に追加されるプロパティは？', opts:['PSComputerName','HostName','RemoteHost'], a:0, ex:'どのサーバーの結果かを区別できます。'}
+  ]}
+];
+
+const CHEAT = [
+  ['ls','Get-ChildItem','gci, dir'],['cd','Set-Location','cd, sl'],['pwd','Get-Location','pwd, gl'],
+  ['cat file','Get-Content file','gc'],['tail -f file','Get-Content file -Tail 10 -Wait',''],
+  ['head -n 5','Select-Object -First 5',''],['grep pattern','Select-String pattern','sls'],
+  ['find . -name "*.log"','Get-ChildItem -Recurse -Filter *.log',''],['wc -l','Measure-Object -Line',''],
+  ['sort | uniq -c','Group-Object','group'],['cut / awk で列を取る','Select-Object Name, Id',''],
+  ['touch file','New-Item file',''],['mkdir dir','New-Item -ItemType Directory dir','mkdir'],
+  ['cp -r','Copy-Item -Recurse','cp, copy'],['mv','Move-Item','mv, move'],['rm -rf dir','Remove-Item dir -Recurse -Force','rm, del'],
+  ['> / >>','Out-File / Add-Content','> と >> も使える'],['echo $PATH','$env:PATH',''],["export X=1","$env:X = '1'",''],
+  ['which cmd','Get-Command cmd','gcm'],['man cmd','Get-Help cmd','help'],
+  ['ps','Get-Process','gps, ps'],['kill PID','Stop-Process -Id PID','kill'],
+  ['systemctl status svc','Get-Service svc','gsv'],['journalctl','Get-WinEvent',''],
+  ['ip addr','Get-NetIPAddress',''],['ping host','Test-Connection host',''],['nc -zv host 443','Test-NetConnection host -Port 443','tnc'],
+  ['dig host','Resolve-DnsName host',''],['ss -tln','Get-NetTCPConnection -State Listen',''],
+  ['curl URL','Invoke-WebRequest URL','iwr'],['curl URL | jq','Invoke-RestMethod URL','irm'],
+  ['ssh host','Enter-PSSession host','etsn']
+];
+
+/* ---------- 状態 ---------- */
+const KEY = 'ps-shuren-v1';
+let state = {d:{}, q:{}};
+try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && s.d) state = s; }catch(e){}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+/* ---------- 表示 ---------- */
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const HL = /(#[^\n]*)|('(?:[^'\n]|'')*'|"[^"\n]*")|(\$[\w:]+)|(\b(?:if|elseif|else|foreach|for|while|switch|try|catch|finally|function|param|return|in|default)\b)|(-[a-z]\w*)|(\b[a-z]+-[a-z][a-z0-9]+\b)|(\[[a-z.]+\])|(\b\d[\d.]*(?:gb|mb|kb)?\b)/gi;
+const CLS = ['h-com','h-str','h-var','h-kw','h-par','h-cmd','h-type','h-num'];
+function hl(src){
+  let out = '', last = 0;
+  src.replace(HL, (m, ...g) => {
+    const idx = g[8];
+    out += esc(src.slice(last, idx));
+    const k = g.slice(0,8).findIndex(x => x !== undefined);
+    out += `<span class="${CLS[k]}">${esc(m)}</span>`;
+    last = idx + m.length;
+    return m;
+  });
+  return out + esc(src.slice(last));
+}
+
+function counts(ch){
+  const total = ch.drills.length + ch.quiz.length;
+  let done = 0;
+  ch.drills.forEach((_,i)=>{ if(state.d[ch.id+'-'+i]) done++; });
+  ch.quiz.forEach((_,i)=>{ if(state.q[ch.id+'-'+i]) done++; });
+  return [done,total];
+}
+function renderProgress(){
+  let d=0,t=0; CH.forEach(c=>{const [a,b]=counts(c); d+=a; t+=b;});
+  document.getElementById('pgText').textContent = `${d} / ${t}`;
+  document.getElementById('pgBar').style.width = (t? d/t*100 : 0) + '%';
+}
+function renderToc(cur){
+  const toc = document.getElementById('toc');
+  toc.innerHTML = CH.map((c,i)=>{
+    const [d,t] = counts(c);
+    return `<a href="#${c.id}" class="${cur===c.id?'on':''}"><span class="n">${i+1}</span><span class="t">${esc(c.title)}</span><span class="c ${d===t?'done':''}">${d}/${t}</span></a>`;
+  }).join('') + `<div class="sep"></div><a href="#cheatsheet" class="${cur==='cheatsheet'?'on':''}"><span class="n">≡</span><span class="t">Bash 対応表</span><span class="c"></span></a>`;
+}
+
+function block(b){
+  if(b.h) return `<h3>${b.h}</h3>`;
+  if(b.p) return `<p>${b.p}</p>`;
+  if(b.code!==undefined){
+    const bash = b.lang==='bash';
+    return `<div class="code ${bash?'bash':''}"><span class="lang">${bash?'bash':'PowerShell'}</span><pre><code>${bash?esc(b.code):hl(b.code)}</code></pre></div>`;
+  }
+  if(b.note) return `<aside class="note">${b.label?`<b>${b.label}</b>`:''}${b.note}</aside>`;
+  if(b.table){
+    const t=b.table, cc=t.code||[];
+    return `<div class="tbl"><table><thead><tr>${t.head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${t.rows.map(r=>`<tr>${r.map((x,i)=>`<td>${cc.includes(i)?`<code>${esc(x)}</code>`:esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  }
+  return '';
+}
+
+function renderChapter(id){
+  const i = CH.findIndex(c=>c.id===id), ch = CH[i];
+  const drills = ch.drills.map((d,k)=>{
+    const key = ch.id+'-'+k, solved = !!state.d[key];
+    return `<div class="drill" data-key="${key}">
+      <div class="drill-head"><span class="dnum">実技 ${k+1}</span><span class="chip ${solved?'ok':''}">${solved?'クリア':'未挑戦'}</span>${d.win?'<span class="win">WIN</span>':''}</div>
+      <p class="task">${d.task}</p>
+      <div class="term">
+        <div class="log" aria-live="polite"></div>
+        <form class="line" data-key="${key}"><label class="prompt" for="in-${key}">PS C:\\Users\\yamagata\\lab&gt;</label><input id="in-${key}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="コマンドを入力"></form>
+      </div>
+      <div class="acts"><button class="btn pri" data-act="run" type="button">実行</button><button class="btn" data-act="hint" type="button">ヒント</button><button class="btn" data-act="ans" type="button">解答例</button></div>
+      <div class="fb" hidden></div>
+    </div>`;
+  }).join('');
+  const quiz = ch.quiz.map((q,k)=>{
+    const key = ch.id+'-'+k;
+    return `<div class="quiz" data-key="${key}"><p class="q">Q${k+1}. ${q.q}</p><div class="opts">${q.opts.map((o,j)=>`<button class="opt" type="button" data-j="${j}">${o}</button>`).join('')}</div><p class="ex" hidden></p></div>`;
+  }).join('');
+  const prev = CH[i-1], next = CH[i+1];
+  return `<div class="chap-head"><div class="eyebrow">Chapter ${i+1} / ${CH.length}</div><h2>${esc(ch.title)}</h2></div>
+    <p class="lead">${ch.lead}</p>
+    ${ch.body.map(block).join('')}
+    <div class="sect-title">実技</div><p class="sect-sub">入力して Enter または「実行」。何度でも試せます。</p>
+    ${drills}
+    <div class="sect-title">確認テスト</div><p class="sect-sub">選択肢を 1 つ選ぶと、正誤と解説が表示されます。</p>
+    ${quiz}
+    <div class="pager">${prev?`<a href="#${prev.id}"><small>前の章</small>${esc(prev.title)}</a>`:''}${next?`<a class="nx" href="#${next.id}"><small>次の章</small>${esc(next.title)}</a>`:`<a class="nx" href="#cheatsheet"><small>付録</small>Bash 対応表</a>`}</div>`;
+}
+
+function renderCheat(){
+  return `<div class="chap-head"><div class="eyebrow">Appendix</div><h2>Bash 対応表</h2></div>
+  <p class="lead">Linux で慣れている操作を PowerShell で書くとどうなるかの早見表です。右端は対話中に使える主なエイリアスです（Linux 版 PowerShell では ls、cat、ps などのエイリアスは無効です）。</p>
+  <div class="tbl"><table><thead><tr><th>Bash</th><th>PowerShell</th><th>エイリアス・補足</th></tr></thead><tbody>
+  ${CHEAT.map(r=>`<tr><td><code>${esc(r[0])}</code></td><td><code>${esc(r[1])}</code></td><td>${esc(r[2])}</td></tr>`).join('')}
+  </tbody></table></div>
+  <div class="pager"><a href="#${CH[CH.length-1].id}"><small>前の章</small>${esc(CH[CH.length-1].title)}</a><a class="nx" href="#${CH[0].id}"><small>最初へ</small>${esc(CH[0].title)}</a></div>`;
+}
+
+function route(){
+  const h = location.hash.slice(1);
+  const id = (h==='cheatsheet' || CH.some(c=>c.id===h)) ? h : CH[0].id;
+  document.getElementById('main').innerHTML = id==='cheatsheet' ? renderCheat() : renderChapter(id);
+  renderToc(id); renderProgress();
+}
+
+function findDrill(key){
+  const [cid, k] = [key.slice(0,key.lastIndexOf('-')), +key.slice(key.lastIndexOf('-')+1)];
+  return CH.find(c=>c.id===cid).drills[k];
+}
+function runDrill(card){
+  const key = card.dataset.key, d = findDrill(key);
+  const input = card.querySelector('input'), raw = input.value;
+  if(!raw.trim()) { input.focus(); return; }
+  const r = judge(d, raw);
+  const log = card.querySelector('.log');
+  let html = `<pre><span class="dim">PS C:\\Users\\yamagata\\lab&gt;</span> ${hl(raw)}</pre>`;
+  if(r.out) html += `<pre class="${r.err?'err':''}">${esc(r.out)}</pre>`;
+  log.insertAdjacentHTML('beforeend', html);
+  while(log.children.length > 8) log.removeChild(log.firstChild);
+  log.scrollTop = log.scrollHeight;
+  const fb = card.querySelector('.fb');
+  fb.hidden = false;
+  if(r.ok){
+    fb.className = 'fb ok';
+    fb.innerHTML = '正解です。' + (r.note ? ' ' + r.note : '');
+    if(!state.d[key]){ state.d[key] = true; save(); }
+    const chip = card.querySelector('.chip'); chip.textContent='クリア'; chip.classList.add('ok');
+    renderToc(location.hash.slice(1) || CH[0].id); renderProgress();
+  } else {
+    fb.className = 'fb ng'; fb.innerHTML = r.msg;
+  }
+  input.value = '';
+}
+
+if(typeof document !== 'undefined'){
+  document.addEventListener('submit', e=>{
+    const f = e.target.closest('form.line'); if(!f) return;
+    e.preventDefault(); runDrill(f.closest('.drill'));
+  });
+  document.addEventListener('click', e=>{
+    const b = e.target.closest('[data-act]');
+    if(b){
+      const card = b.closest('.drill'), d = findDrill(card.dataset.key), fb = card.querySelector('.fb');
+      if(b.dataset.act==='run') runDrill(card);
+      else if(b.dataset.act==='hint'){ fb.hidden=false; fb.className='fb info'; fb.innerHTML='ヒント: '+d.hint; }
+      else if(b.dataset.act==='ans'){ fb.hidden=false; fb.className='fb info'; fb.innerHTML='解答例: <code>'+esc(d.ans)+'</code>'; const inp=card.querySelector('input'); inp.value=d.ans; inp.focus(); }
+      return;
+    }
+    const o = e.target.closest('.opt');
+    if(o){
+      const box = o.closest('.quiz'), key = box.dataset.key;
+      const cid = key.slice(0,key.lastIndexOf('-')), k = +key.slice(key.lastIndexOf('-')+1);
+      const q = CH.find(c=>c.id===cid).quiz[k], j = +o.dataset.j;
+      box.querySelectorAll('.opt').forEach((x,i)=>{ x.disabled = true; if(i===q.a) x.classList.add('right'); });
+      if(j!==q.a) o.classList.add('wrong');
+      const ex = box.querySelector('.ex'); ex.hidden=false; ex.innerHTML = (j===q.a?'正解。':'不正解。') + q.ex;
+      if(j===q.a && !state.q[key]){ state.q[key]=true; save(); renderToc(cid); renderProgress(); }
+      return;
+    }
+  });
+  const rs = document.getElementById('reset');
+  rs.addEventListener('click', ()=>{
+    if(!rs.classList.contains('armed')){ rs.classList.add('armed'); rs.textContent='もう一度押すとリセットします'; setTimeout(()=>{rs.classList.remove('armed'); rs.textContent='進捗をリセット';}, 4000); return; }
+    state = {d:{}, q:{}}; save(); rs.classList.remove('armed'); rs.textContent='進捗をリセット'; route();
+  });
+  window.addEventListener('hashchange', ()=>{ route(); window.scrollTo(0,0); });
+  route();
+}
+</script>
+
+</body></html>
