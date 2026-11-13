@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>学習ツール集</title>
-<meta name="description" content="ネットワークと基本情報技術者試験の学習用に作ったブラウザ上のツール集です。">
+<meta name="description" content="ネットワーク、サーバー、データベース、基本情報技術者試験の学習用に作った、ブラウザで動くツール集です。">
 <style>
 :root{
   color-scheme:light;
@@ -40,21 +40,27 @@ main>.tape{width:calc(100% + 48px);flex:none;overflow:hidden;background:var(--re
 .tape>div{display:inline-block;padding:7px 0;white-space:nowrap;animation:scroll 40s linear infinite}
 @keyframes scroll{to{transform:translateX(-50%)}}
 
-.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:24px;margin:0;padding:0;list-style:none}
-.tool{
-  display:flex;flex-direction:column;height:100%;padding:18px 20px 20px;
-  background:var(--c);color:inherit;text-decoration:none;
-  border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);
-  transform:rotate(var(--r));transition:transform .15s,box-shadow .15s;
+/* 分野ごとの箱。中のツールは横 1 行に並べ、数が増えても縦に伸びすぎないようにする */
+.group{position:relative;margin-top:14px;padding:26px 0 4px;background:var(--paper);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink)}
+.group h2{position:absolute;top:-18px;left:16px;margin:0;padding:3px 12px;background:var(--ink);color:#fff;font-size:15px;font-weight:900;letter-spacing:.08em;transform:rotate(var(--r))}
+.group h2 small{margin-left:10px;color:var(--yellow);font-size:12px;font-weight:700;letter-spacing:0}
+.rows{margin:0;padding:0;list-style:none}
+.rows li+li{border-top:2px dashed rgba(17,17,17,.22)}
+.row{display:grid;grid-template-columns:112px minmax(0,1fr) auto;align-items:center;gap:4px 18px;padding:12px 18px;color:inherit;text-decoration:none;transition:background .12s}
+.row:hover,.row:focus-visible{background:var(--c)}
+.row:focus-visible{outline:3px solid var(--ink);outline-offset:-3px}
+.mark{display:grid;place-items:center;height:62px;background:var(--c);border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);font:900 23px/1 "Cascadia Code",Consolas,"Courier New",monospace;white-space:nowrap}
+.name{display:block;font-size:19px;font-weight:900;line-height:1.35}
+.new{margin-left:8px;padding:1px 6px;background:var(--red);color:#fff;font-size:11px;letter-spacing:.06em;vertical-align:3px}
+.desc{display:block;margin-top:2px;font-size:14px;line-height:1.6}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.chips span{padding:0 7px;background:#fff;border:2px solid var(--ink);font-size:11.5px;font-weight:700}
+.go{font-size:22px;font-weight:900}
+@media (max-width:600px){
+  .row{grid-template-columns:70px minmax(0,1fr);gap:4px 12px;padding:12px 14px}
+  .mark{height:50px;font-size:16px}
+  .go{display:none}
 }
-.tool:hover,.tool:focus-visible{transform:rotate(0) translate(-2px,-2px);box-shadow:9px 9px 0 var(--ink)}
-.tool:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
-.mark{font:900 44px/1.1 "Cascadia Code",Consolas,"Courier New",monospace}
-.name{margin-top:8px;font-size:21px;font-weight:900;line-height:1.35}
-.desc{margin-top:6px;font-size:15px}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 14px}
-.chips span{padding:1px 8px;background:#fff;border:2px solid var(--ink);font-size:12px;font-weight:700}
-.go{margin-top:auto;font-weight:900}
 
 footer{padding:14px 18px;background:var(--paper);border:3px solid var(--ink);font-size:13px}
 footer p{margin:0 0 6px}
@@ -63,7 +69,7 @@ footer a{color:inherit;font-weight:800}
 
 @media (prefers-reduced-motion:reduce){
   .tape>div{animation:none}
-  .tool{transition:none}
+  .row{transition:none}
 }
 </style>
 </head>
@@ -71,57 +77,65 @@ footer a{color:inherit;font-weight:800}
 <canvas id="rain" aria-hidden="true"></canvas>
 <main>
   <header>
-    <span class="kicker">ブラウザだけで動く 6 本</span>
+    <span class="kicker">ブラウザだけで動く 7 本</span>
     <h1>学習ツール集</h1>
-    <p class="lead">ネットワーク、Linux、基本情報を、<b>手を動かして</b>覚える。</p>
+    <p class="lead">ネットワーク、サーバー、基本情報を、<b>手を動かして</b>覚える。</p>
   </header>
 
   <div class="tape" aria-hidden="true"><div id="tape"></div></div>
 
-  <ul class="tools">
-    <li><a class="tool" href="router-drill/" style="--c:var(--pink);--r:-1.2deg">
-      <span class="mark">R1#</span>
-      <span class="name">ルータ基本設定ドリル</span>
-      <span class="desc">Cisco IOS ルータの初期設定を、ブラウザ上の疑似コンソールで練習します。設定結果は自動で採点します。</span>
-      <span class="chips"><span>通し練習</span><span>一問一答</span><span>四択</span><span>早見表</span></span>
-      <span class="go">開く →</span>
-    </a></li>
-    <li><a class="tool" href="subnet-drill/" style="--c:var(--green);--r:.9deg">
-      <span class="mark">/26</span>
-      <span class="name">サブネット計算ドリル</span>
-      <span class="desc">CCNA のサブネット計算を、ランダムな問題で反復練習します。答え合わせのあと、2 進数で計算過程を確認できます。</span>
-      <span class="chips"><span>11 種類の問題</span><span>自動生成</span><span>2 進数の解説</span></span>
-      <span class="go">開く →</span>
-    </a></li>
-    <li><a class="tool" href="mysql-drill/" style="--c:var(--yellow);--r:.6deg">
-      <span class="mark">SQL&gt;</span>
-      <span class="name">MySQL 基本操作ドリル</span>
-      <span class="desc">MySQL の接続、SQL、トランザクション、権限を、ブラウザ上の疑似コンソールで練習します。結果と状態を自動で採点します。</span>
-      <span class="chips"><span>通し練習</span><span>一問一答</span><span>四択</span><span>早見表</span></span>
-      <span class="go">開く →</span>
-    </a></li>
-    <li><a class="tool" href="linux-drill/" style="--c:var(--peach);--r:.7deg">
-      <span class="mark">~]$</span>
-      <span class="name">Linux 基本操作ドリル</span>
-      <span class="desc">LinuC レベル1・LPIC-1 の範囲の操作を、ブラウザ上の疑似 bash で練習します。ファイルの中身と権限の状態を自動で採点します。</span>
-      <span class="chips"><span>通し練習</span><span>一問一答</span><span>四択</span><span>早見表</span></span>
-      <span class="go">開く →</span>
-    </a></li>
-    <li><a class="tool" href="powershell-drill/" style="--c:var(--lavender);--r:-.8deg">
-      <span class="mark">PS&gt;</span>
-      <span class="name">PowerShell 修練帳</span>
-      <span class="desc">コマンドの規則からサーバー管理、リモート実行までを 8 章で学びます。解説を読み、模擬コンソールと確認テストで確かめます。</span>
-      <span class="chips"><span>8 章</span><span>実技 30 問</span><span>テスト 24 問</span><span>Bash 対応表</span></span>
-      <span class="go">開く →</span>
-    </a></li>
-    <li><a class="tool" href="kamoku-b/" style="--c:var(--sky);--r:-.7deg">
-      <span class="mark">科目B</span>
-      <span class="name">科目B 完走コース</span>
-      <span class="desc">基本情報技術者試験 科目B の対策コースです。読み方の手順に沿った解説で、易しい問題から公開問題まで進めます。</span>
-      <span class="chips"><span>171 問</span><span>16 ステージ</span><span>セキュリティ別枠</span></span>
-      <span class="go">開く →</span>
-    </a></li>
-  </ul>
+  <section class="group" aria-labelledby="g-net">
+    <h2 id="g-net" style="--r:-1.5deg">ネットワーク<small>Cisco IOS・サブネット</small></h2>
+    <ul class="rows">
+      <li><a class="row" href="router-drill/" style="--c:var(--pink)">
+        <span class="mark">R1#</span>
+        <span><span class="name">ルータ基本設定ドリル</span><span class="desc">Cisco IOS ルータの初期設定を、ブラウザ上の疑似コンソールで練習します。設定結果は自動で採点します。</span><span class="chips"><span>通し練習</span><span>一問一答</span><span>四択</span><span>早見表</span></span></span>
+        <span class="go" aria-hidden="true">→</span>
+      </a></li>
+      <li><a class="row" href="subnet-drill/" style="--c:var(--green)">
+        <span class="mark">/26</span>
+        <span><span class="name">サブネット計算ドリル</span><span class="desc">CCNA のサブネット計算を、ランダムな問題で反復練習します。答え合わせのあと、2 進数で計算過程を確認できます。</span><span class="chips"><span>11 種類の問題</span><span>自動生成</span><span>2 進数の解説</span></span></span>
+        <span class="go" aria-hidden="true">→</span>
+      </a></li>
+    </ul>
+  </section>
+
+  <section class="group" aria-labelledby="g-srv">
+    <h2 id="g-srv" style="--r:1deg">サーバーとデータベース<small>Linux・PowerShell・MySQL</small></h2>
+    <ul class="rows">
+      <li><a class="row" href="linux-course/" style="--c:var(--peach)">
+        <span class="mark">~]#</span>
+        <span><span class="name">Linux サーバー引き継ぎコース<span class="new">NEW</span></span><span class="desc">1 台のサーバーを、ステージを進めながら引き継ぎます。前の作業の上に次の課題が積み上がり、最後は障害の原因を探して直します。</span><span class="chips"><span>12 ステージ</span><span>作業を持ち越し</span><span>トラブル対応</span></span></span>
+        <span class="go" aria-hidden="true">→</span>
+      </a></li>
+      <li><a class="row" href="linux-drill/" style="--c:var(--peach)">
+        <span class="mark">~]$</span>
+        <span><span class="name">Linux 基本操作ドリル</span><span class="desc">LinuC レベル1・LPIC-1 の範囲の操作を、疑似 bash で練習します。ファイルの中身と権限の状態を自動で採点します。</span><span class="chips"><span>通し練習</span><span>一問一答</span><span>四択</span><span>早見表</span></span></span>
+        <span class="go" aria-hidden="true">→</span>
+      </a></li>
+      <li><a class="row" href="powershell-drill/" style="--c:var(--lavender)">
+        <span class="mark">PS&gt;</span>
+        <span><span class="name">PowerShell 修練帳</span><span class="desc">コマンドの規則からサーバー管理、リモート実行までを 8 章で学びます。解説を読み、模擬コンソールと確認テストで確かめます。</span><span class="chips"><span>8 章</span><span>実技 30 問</span><span>テスト 24 問</span><span>Bash 対応表</span></span></span>
+        <span class="go" aria-hidden="true">→</span>
+      </a></li>
+      <li><a class="row" href="mysql-drill/" style="--c:var(--yellow)">
+        <span class="mark">SQL&gt;</span>
+        <span><span class="name">MySQL 基本操作ドリル</span><span class="desc">MySQL の接続、SQL、トランザクション、権限を、疑似コンソールで練習します。結果と状態を自動で採点します。</span><span class="chips"><span>通し練習</span><span>一問一答</span><span>四択</span><span>早見表</span></span></span>
+        <span class="go" aria-hidden="true">→</span>
+      </a></li>
+    </ul>
+  </section>
+
+  <section class="group" aria-labelledby="g-exam">
+    <h2 id="g-exam" style="--r:-1deg">試験対策<small>基本情報技術者試験</small></h2>
+    <ul class="rows">
+      <li><a class="row" href="kamoku-b/" style="--c:var(--sky)">
+        <span class="mark">科目B</span>
+        <span><span class="name">科目B 完走コース</span><span class="desc">基本情報技術者試験 科目B の対策コースです。読み方の手順に沿った解説で、易しい問題から公開問題まで進めます。</span><span class="chips"><span>171 問</span><span>16 ステージ</span><span>セキュリティ別枠</span></span></span>
+        <span class="go" aria-hidden="true">→</span>
+      </a></li>
+    </ul>
+  </section>
 
   <footer>
     <p>成績や設定は、お使いのブラウザの中にだけ保存されます。</p>
@@ -132,7 +146,7 @@ footer a{color:inherit;font-weight:800}
 
 <script>
 // 帯の文字列。同じ内容を 2 回並べ、半分動いた時点で先頭に戻して継ぎ目をなくす
-const TAPE = '★ enable ★ configure terminal ★ 255.255.255.192 ★ no shutdown ★ SELECT * FROM ★ chmod 640 ★ grep -v '^#' ★ Get-Process ★ 擬似言語 ★ トレース ★ 二分探索 ★ show running-config ';
+const TAPE = '★ enable ★ configure terminal ★ 255.255.255.192 ★ no shutdown ★ SELECT * FROM ★ systemctl enable --now ★ chmod 640 ★ grep -v '^#' ★ Get-Process ★ 擬似言語 ★ トレース ★ 二分探索 ★ show running-config ';
 document.getElementById('tape').textContent = TAPE.repeat(4) + TAPE.repeat(4);
 
 // 背景に降る記号。動きを減らす設定の閲覧者には出さない

@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="1 台の Linux サーバーを、12 ステージで前任者から引き継ぐ練習コースです。前の作業の上に次の課題が積み上がり、最後は障害対応です。">
+<style>:root{color-scheme:light}body{margin:0;padding:0}[hidden]{display:none!important}</style>
+<title>Linux サーバー引き継ぎコース</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+JP:wght@400;500;700&display=swap">
+<style>
+/* 暖色の紙に依頼票を貼ったような画面。左にステージの梯子、中央に依頼票、右に端末とサーバーの状況 */
+:root{
+  --bg:#f2ece1; --paper:#fffdf8; --ink:#201c16; --muted:#6c6457; --line:#ddd2bf;
+  --acc:#b85a17; --acc-soft:#fbe4cf; --on-acc:#fff; --ok:#2c7a47; --ok-soft:#e0f1e5; --ng:#b03d28; --ng-soft:#f9e1da; --warn:#8a6100;
+  --term-bg:#15120e; --term-bar:#221d17; --term-edge:#332b21; --term-fg:#e6ddd0; --term-dim:#958a7a; --term-prompt:#f0b25a; --term-err:#ff8d78; --term-note:#9ad0ff;
+  --f-ui:"IBM Plex Sans JP","Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#17140f; --paper:#211d17; --ink:#efe7da; --muted:#a89d8b; --line:#3a3227;
+  --acc:#f0a14f; --acc-soft:#3b2814; --on-acc:#231505; --ok:#63c287; --ok-soft:#173222; --ng:#f2846d; --ng-soft:#3d1d16; --warn:#e5b54b;
+  color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#17140f; --paper:#211d17; --ink:#efe7da; --muted:#a89d8b; --line:#3a3227;
+  --acc:#f0a14f; --acc-soft:#3b2814; --on-acc:#231505; --ok:#63c287; --ok-soft:#173222; --ng:#f2846d; --ng-soft:#3d1d16; --warn:#e5b54b;
+  color-scheme:dark; }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:14px;line-height:1.65}
+code,.mono{font-family:var(--f-mono)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.wrap{max-width:1320px;margin:0 auto;padding-block:18px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* 見出し */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px;margin-bottom:16px}
+.eyebrow{margin:0;font-size:12px;color:var(--muted);letter-spacing:.06em}
+h1{margin:2px 0 0;font-size:25px;letter-spacing:.02em}
+h1 small{font-family:var(--f-mono);font-size:14px;font-weight:500;color:var(--acc);margin-left:10px}
+.overall{font-size:13px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.overall b{color:var(--ink);font-size:18px}
+.meter{display:block;width:220px;height:8px;margin-top:4px;margin-left:auto;background:var(--line);border-radius:4px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--acc)}
+
+.layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:20px;align-items:start}
+
+/* ステージの梯子 */
+.ladder{position:sticky;top:12px;display:flex;flex-direction:column;gap:4px;padding:10px;background:var(--paper);border:1px solid var(--line);border-radius:10px}
+.ladder .ph{margin:8px 6px 2px;font-size:11px;color:var(--muted);letter-spacing:.1em}
+.ladder .ph:first-child{margin-top:0}
+.lstage{display:grid;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:8px;padding:5px 6px;background:none;border:1px solid transparent;border-radius:7px;text-align:left}
+.lstage:hover{border-color:var(--line)}
+.lstage[aria-current="true"]{background:var(--acc-soft);border-color:var(--acc)}
+.lstage .no{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);font-family:var(--f-mono);font-size:12.5px;font-weight:600;background:var(--paper)}
+.lstage.clear .no{background:var(--ok);border-color:var(--ok);color:#fff}
+.lstage .nm{font-size:13px;line-height:1.3;overflow-wrap:anywhere}
+.lstage .bar{grid-column:2;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.lstage .bar i{display:block;height:100%;background:var(--acc)}
+.lstage.clear .bar i{background:var(--ok)}
+
+/* ステージの見出しと、課題の並び */
+.stagehead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 20px;padding:14px 18px;background:var(--paper);border:1px solid var(--line);border-radius:10px;margin-bottom:14px}
+.stagehead .ph{font-size:12px;color:var(--acc);font-weight:700;letter-spacing:.08em}
+.stagehead h2{margin:2px 0 2px;font-size:20px}
+.stagehead p{margin:0;color:var(--muted);font-size:13px;max-width:60ch}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.steps button{min-width:34px;height:30px;padding:0 8px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font-family:var(--f-mono);font-size:12px}
+.steps button[aria-current="true"]{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc-soft)}
+.steps button.o{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.steps button.x{background:var(--ng-soft);border-color:var(--ng);color:var(--ng)}
+
+.desk{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:16px;align-items:start}
+
+/* 依頼票 */
+.ticket{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px 18px 18px;box-shadow:0 1px 0 var(--line),0 8px 20px -14px rgba(60,40,10,.35);display:flex;flex-direction:column;gap:12px;min-width:0}
+.ticket::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 3px 3px 0;background:var(--acc)}
+.ticket.trouble::before{background:var(--ng)}
+.ticket.quizt::before{background:var(--muted)}
+.thead{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px}
+.tag{font-size:11px;font-weight:700;letter-spacing:.08em;padding:1px 8px;border-radius:999px;background:var(--acc-soft);color:var(--acc)}
+.trouble .tag{background:var(--ng-soft);color:var(--ng)}
+.quizt .tag{background:var(--line);color:var(--ink)}
+.tno{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.state{margin-left:auto;font-size:12px;font-weight:700}
+.state.o{color:var(--ok)} .state.x{color:var(--ng)}
+.ticket h3{margin:0;font-size:17px;line-height:1.45}
+.tbody{margin:0;font-size:14.5px;line-height:1.75;overflow-wrap:anywhere}
+.tbody code,.explain code,.hint code{font-size:13px;background:var(--acc-soft);padding:0 5px;border-radius:3px}
+.from{font-size:12px;color:var(--muted)}
+.hint{font-size:13px;border:1px dashed var(--warn);border-radius:8px;padding:8px 11px}
+.hint b{color:var(--warn)}
+.tactions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--line);background:var(--paper);border-radius:7px;padding:6px 12px;font-size:13px}
+.btn:hover{border-color:var(--acc)}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:var(--on-acc);font-weight:700}
+.result{border-radius:8px;padding:11px 13px;display:flex;flex-direction:column;gap:6px}
+.result.good{background:var(--ok-soft)} .result.bad{background:var(--ng-soft)} .result.info{background:var(--acc-soft)}
+.result .verdict{font-weight:700}
+.result.good .verdict{color:var(--ok)} .result.bad .verdict{color:var(--ng)}
+.result pre{margin:0;font-family:var(--f-mono);font-size:12.5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.explain{font-size:13px}
+.choices{display:grid;gap:8px}
+.choice{display:flex;gap:10px;text-align:left;background:var(--paper);border:1px solid var(--line);border-radius:7px;padding:9px 12px;line-height:1.5}
+.choice:hover:not(:disabled){border-color:var(--acc)}
+.choice:disabled{cursor:default}
+.choice .k{flex:none;font-family:var(--f-mono);font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:4px;width:1.6em;text-align:center}
+.choice .ct{min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
+.choice.correct{border-color:var(--ok);background:var(--ok-soft)}
+.choice.wrong{border-color:var(--ng);background:var(--ng-soft)}
+.choice.dim{opacity:.55}
+.endcard h3{margin:0 0 4px}
+.endcard p{margin:0 0 6px}
+
+/* 端末とサーバーの状況 */
+.console{display:flex;flex-direction:column;gap:8px;min-width:0}
+.status{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.status div{background:var(--paper);padding:7px 10px;min-width:0}
+.status .k{display:block;font-size:10.5px;color:var(--muted);letter-spacing:.06em}
+.status .v{display:block;font-family:var(--f-mono);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0;background:var(--line)}
+.dot.on{background:var(--ok)} .dot.off{background:var(--ng)}
+.v.hot{color:var(--ng);font-weight:700}
+.term{background:var(--term-bg);color:var(--term-fg);border:1px solid var(--term-edge);border-radius:10px;overflow:hidden}
+.term-bar{display:flex;justify-content:space-between;gap:8px;padding:6px 12px;background:var(--term-bar);font-family:var(--f-mono);font-size:11.5px;color:var(--term-dim)}
+.t-scroll{height:clamp(300px,52vh,560px);overflow-y:auto;padding:10px 12px;font-family:var(--f-mono);font-size:13.5px;line-height:1.45;cursor:text}
+.t-out{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;tab-size:8}
+.t-out .err{color:var(--term-err)} .t-out .note{color:var(--term-note)} .t-out .dim{color:var(--term-dim)}
+.t-in{display:flex;flex-wrap:wrap;align-items:baseline}
+.t-pr{white-space:pre-wrap;color:var(--term-prompt);overflow-wrap:anywhere}
+.t-inp{flex:1 1 8ch;min-width:8ch;background:transparent;border:0;outline:0;color:var(--term-fg);font:inherit;padding:0;caret-color:var(--term-prompt)}
+.t-inp.mask{color:transparent}
+.t-inp:focus-visible{outline:0}   /* 端末の中ではカーソルが見えるので、枠は出さない */
+@media (pointer:coarse){ .t-scroll{font-size:13px} .t-inp{font-size:16px} }
+.keybar{display:flex;flex-wrap:wrap;gap:6px}
+.keybar button{font-family:var(--f-mono);font-size:12px;background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:4px 9px}
+.keyhelp{margin:0;font-size:12px;color:var(--muted)}
+.keyhelp kbd{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);border-radius:3px;padding:0 4px;background:var(--paper)}
+.foot{margin-top:28px;font-size:12px;color:var(--muted)}
+.foot a{color:inherit}
+
+@media (max-width:1080px){ .desk{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:820px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .ladder{position:static;flex-direction:row;overflow-x:auto;padding:8px}
+  .ladder .ph{display:none}
+  .lstage{grid-template-columns:28px;min-width:44px;justify-items:center}
+  .lstage .nm{display:none}
+  .lstage .bar{grid-column:1;width:28px}
+  .status{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .meter{margin-left:0}
+  .overall{text-align:left}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow">前任者から server1 を引き継ぐ、12 ステージの完走コース</p>
+      <h1>Linux サーバー引き継ぎコース<small>~]#</small></h1>
+    </div>
+    <div class="overall" id="overall"></div>
+  </header>
+
+  <div class="layout">
+    <nav class="ladder" id="ladder" aria-label="ステージ"></nav>
+    <main>
+      <section class="stagehead" id="stagehead"></section>
+      <div class="desk">
+        <article class="ticket" id="ticket"></article>
+        <div class="console">
+          <div class="status" id="status" aria-label="サーバーの状況"></div>
+          <div class="term" id="term">
+            <div class="term-bar"><span>ssh student@server1</span><span id="whoami">student</span></div>
+            <div class="t-scroll"><pre class="t-out"></pre><div class="t-in"><span class="t-pr"></span><input class="t-inp" aria-label="コマンド入力" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div></div>
+          </div>
+          <div class="keybar" id="keybar">
+            <button data-k="tab">Tab</button><button data-k="up">↑</button><button data-k="down">↓</button><button data-k="|">|</button><button data-k=">">&gt;</button><button data-k="~">~</button><button data-k="/">/</button><button data-k="-">-</button><button data-k="c">Ctrl+C</button>
+          </div>
+          <p class="keyhelp"><kbd>Tab</kbd> 補完（2 回で候補一覧）　<kbd>↑</kbd><kbd>↓</kbd> 履歴　<kbd>Ctrl+C</kbd> 入力の取り消し　<kbd>Ctrl+L</kbd> 画面を消す</p>
+        </div>
+      </div>
+      <p class="foot">ブラウザの中だけで動く模擬環境です。進み具合はこのブラウザにだけ保存されます。疑似 bash は <a href="../linux-drill/">Linux 基本操作ドリル</a> と共通です。<button class="btn" id="resetAll" style="margin-left:8px">記録を消す</button></p>
+    </main>
+  </div>
+</div>
+
+<script src="../linux-drill/engine.js"></script>
+<script>
+"use strict";
+/* ================= 舞台：引き継ぐサーバーの初期状態 ================= */
+const HOME='/home/student';
+const CP={name:'引き継ぎコース',group:'web',gid:1100,stupw:'maple#4821',rootpw:'cedar#7319',satopw:'birch#5506',
+  files:[
+    {path:'handover.txt',age:2,data:'server1 引き継ぎメモ\n- アプリ本体は /srv/app（設定は conf/app.conf、スクリプトは bin）\n- アプリのログは /var/log/app、Web のアクセスログの控えは /srv/app/logs\n- 古いログは、更新から 30 日を超えたら圧縮すること\n- Web サーバー（httpd）は止めたまま。公開の前に、起動と自動起動の設定が必要\n- チームのグループは web。新メンバーの sato さんのアカウントを作っておくこと\n- ~/old-desktop は前の作業の残りなので、消してよい\n'},
+    {path:'old-desktop/memo.txt',age:90,data:'temp memo\n'},
+    {path:'old-desktop/tmp/draft.txt',age:95,data:'draft\n'},
+  ]};
+const ymd=t=>{ const d=jst(t); return `${d.getUTCFullYear()}${pad2(d.getUTCMonth()+1)}${pad2(d.getUTCDate())}`; };
+const isoDay=t=>{ const d=jst(t); return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth()+1)}-${pad2(d.getUTCDate())}`; };
+/* 権限を見ずにファイルを置く（初期状態と障害の仕込みに使う） */
+function place(sim,path,{data='',mode=0o644,uid=0,gid=0,age=0,type='f',target=null,fake=null}={}){
+  const fs=sim.fs, parts=path.split('/').filter(Boolean); let d=fs.root;
+  for(const p of parts.slice(0,-1)){ let n=d.kids.get(p); if(!n){ n=new Node('d',0o755,0,0,Date.now()-age*DAY); fs.add(d,p,n); } d=n; }
+  const name=parts[parts.length-1]; if(d.kids.has(name)) fs.drop(d,name);
+  const n=new Node(type,mode,uid,gid,Date.now()-age*DAY); if(type==='f') n.data=data; if(type==='l') n.target=target; if(fake!=null) n.fake=fake;
+  fs.add(d,name,n); return n;
+}
+const APP_CONF='# app.conf - 社内アプリの設定\n# 変更したら再起動して反映する（前任者メモ）\n\nName=intra-app\nPort=8080\n\n# DB の接続先\nDbHost=db1\nDbPort=5432\n\nLogDir=/var/log/app\n';
+const BACKUP_SH='#!/bin/bash\n# 使い方: backup.sh 保存先ディレクトリ\ntar czf "$1/app-conf.tar.gz" /srv/app/conf\necho "saved: $1/app-conf.tar.gz"\n';
+const ACCESS=[['10.0.0.21','200'],['192.168.10.7','200'],['10.0.0.21','304'],['172.16.0.9','404'],['10.0.0.21','200'],['192.168.10.7','200'],['10.0.0.5','500'],
+  ['10.0.0.21','200'],['172.16.0.9','200'],['192.168.10.7','404'],['10.0.0.21','200'],['172.16.0.9','200'],['192.168.10.7','304'],['10.0.0.21','200']];
+function setupWorld(sim){
+  const T=Date.now(), D=isoDay(T), dm=jst(T);
+  place(sim,'/srv/app/conf/app.conf',{data:APP_CONF,age:20});
+  place(sim,'/srv/app/bin/backup.sh',{data:BACKUP_SH,mode:0o755,age:20});
+  place(sim,'/srv/app/bin/report.sh',{data:'#!/bin/bash\n# 日次レポートを作る\necho "report done"\n',mode:0o755,age:20});
+  const paths=['/index.html','/about.html','/img/logo.png','/api/items','/contact.html','/css/site.css'];
+  place(sim,'/srv/app/logs/access.log',{age:0,data:ACCESS.map(([ip,code],k)=>`${ip} - - [${pad2(dm.getUTCDate())}/${MON[dm.getUTCMonth()]}/${dm.getUTCFullYear()}:09:${pad2(10+k*3)}:${pad2(5+k*4)} +0900] "GET ${paths[k%paths.length]} HTTP/1.1" ${code} ${[512,1289,236,918,2048,3315,128][k%7]}`).join('\n')+'\n'});
+  place(sim,'/var/log/app/app.log',{age:0,data:[`${D} 09:00:01 INFO  app started (port 8080)`,`${D} 09:12:44 INFO  job=daily-report status=ok`,`${D} 09:30:02 WARN  slow response: /api/items 2.4s`,
+    `${D} 09:41:17 ERROR db connection refused (db1:5432)`,`${D} 09:41:18 INFO  retry 1/3`,`${D} 09:41:23 ERROR db connection refused (db1:5432)`,`${D} 09:41:28 INFO  retry 2/3`,
+    `${D} 09:41:33 INFO  db connected`,`${D} 10:05:10 WARN  disk usage 81%`,`${D} 10:20:55 ERROR job=backup failed: /srv/backup not found`,`${D} 10:21:00 INFO  job=backup skipped`].join('\n')+'\n'});
+  for(const a of [44,38,12,3]) place(sim,`/var/log/app/app-${ymd(T-a*DAY)}.log`,{age:a,data:`${isoDay(T-a*DAY)} 09:00:01 INFO  app started (port 8080)\n`});
+}
+const OLD_LOGS=()=>[44,38].map(a=>`/var/log/app/app-${ymd(Date.now()-a*DAY)}.log`);
+const NEW_LOGS=()=>[12,3].map(a=>`/var/log/app/app-${ymd(Date.now()-a*DAY)}.log`);
+
+/* ================= 課題 =================
+   kind: task=依頼 / trouble=障害 / quiz=確認テスト
+   ref: 正しい表示を作るコマンド（同じ状態で実行して比べる）。goal: 状態で判定する関数
+   solve: 模範解答。飛ばしたときや途中から始めるときは、これを自動で実行して状態をそろえる
+   pre: その課題を始めるときの仕込み */
+const g=(s,p)=>s.fs.get(p.startsWith('/')?p:HOME+'/'+p);
+const isDir=n=>!!n&&n.type==='d', isFile=n=>!!n&&n.type==='f';
+const perm=n=>n?n.mode&0o7777:-1;
+const inGroup=(s,grp,u)=>{ const x=s.group(grp); return !!x&&x.members.includes(u); };
+const errLines=s=>linesOf(textOf(g(s,'/var/log/app/app.log'))).ls.filter(l=>l.includes('ERROR'));
+const STAGES=[
+{phase:'基礎',name:'着任：まず見て回る',goal:'自分の権限と、ホームとログの置き場所を確かめる。',steps:[
+  {kind:'task',title:'自分が誰かを確かめる',body:'まず、いまログインしているユーザーと、所属しているグループを 1 つのコマンドで表示してください。',hint:'ユーザー ID とグループをまとめて表示するコマンドがあります。2 文字です。',ref:'id',solve:['id'],
+    explain:'<code>id</code> は UID、主グループ、補助グループを表示します。<code>wheel</code> に入っているので sudo が使えます。<code>web</code> はチームのグループです。'},
+  {kind:'task',title:'ホームの中身を詳しく見る',body:'ホームディレクトリにあるものを、隠しファイル（<code>.</code> で始まる名前）も含めて、権限や所有者まで分かる形で表示してください。',hint:'詳しく表示するオプションと、隠しファイルも出すオプションを組み合わせます。',ref:'ls -la',solve:['ls -la'],
+    explain:'<code>-l</code> が詳細表示、<code>-a</code> が隠しファイルも表示。<code>.bashrc</code> などの設定ファイルは隠しファイルです。'},
+  {kind:'task',title:'引き継ぎメモを読む',body:'前任者のメモ <code>handover.txt</code> の中身を表示してください。このコースの依頼は、このメモに沿って進みます。',hint:'ファイルの中身をそのまま表示するコマンドです。',ref:'cat ~/handover.txt',solve:['cat handover.txt'],explain:'短いファイルは <code>cat</code>、長いファイルは <code>less</code>（q で終了）で読みます。'},
+  {kind:'quiz',q:'システムの設定ファイルが集まっているディレクトリはどれ？',a:'/etc',w:['/var','/srv','/usr/bin'],ex:'/var はログなど変化するデータ、/srv はサービスが提供するデータ（このサーバーではアプリ本体）、/usr/bin はコマンドの置き場所です。'},
+  {kind:'task',title:'ログの置き場所へ行く',body:'ログの置き場所 <code>/var/log</code> に移動し、そこにあるものを詳しく（<code>-l</code> 付きで）表示してください。',hint:'cd で移動してから ls です。',ref:'ls -l',refCwd:'/var/log',solve:['cd /var/log','ls -l'],
+    explain:'プロンプトの <code>~</code> が <code>log</code> に変わります。<code>messages</code> や <code>secure</code> は root しか読めない権限（600）です。'},
+  {kind:'task',title:'ホームへ戻る',body:'ホームディレクトリに戻ってください。',hint:'cd に何も付けずに打つと、どこにいてもホームへ戻れます。',goal:s=>s.cur().cwd===HOME,solve:['cd'],explain:'<code>cd</code>、<code>cd ~</code>、<code>cd $HOME</code> はどれもホームへ戻ります。<code>cd -</code> は直前の場所へ戻ります。'},
+]},
+{phase:'基礎',name:'作業場所を作る',goal:'引き継ぎ用の作業ディレクトリを作り、メモと控えを整理する。',steps:[
+  {kind:'task',title:'作業ディレクトリを作る',body:'ホームに <code>ops</code> を作り、その中に <code>scripts</code>、<code>reports</code>、<code>backup</code> の 3 つを、1 回のコマンドでまとめて作ってください。',hint:'途中のディレクトリも作る <code>-p</code> と、<code>{a,b,c}</code> の書き方（ブレース展開）を組み合わせます。',
+    goal:s=>['scripts','reports','backup'].every(x=>isDir(g(s,'ops/'+x))),solve:['mkdir -p ~/ops/{scripts,reports,backup}'],explain:'<code>{scripts,reports,backup}</code> はシェルが 3 つの名前に展開してから mkdir に渡します。<code>-p</code> がないと、まだない <code>ops</code> の下には作れません。'},
+  {kind:'task',title:'メモを片付ける',body:'<code>handover.txt</code> を <code>ops</code> の中へ移動してください。',hint:'移動と名前の変更は同じコマンドです。',goal:s=>isFile(g(s,'ops/handover.txt'))&&!g(s,'handover.txt'),solve:['mv ~/handover.txt ~/ops/'],explain:'<code>mv</code> の行き先が既存のディレクトリなら、その中へ移動します。'},
+  {kind:'task',title:'設定の控えを取る',body:'設定を変える前の控えとして、<code>/srv/app/conf/app.conf</code> を <code>~/ops/backup/app.conf.orig</code> という名前でコピーしてください。',hint:'コピー先にファイル名まで書けば、その名前で作られます。',
+    goal:s=>g(s,'ops/backup/app.conf.orig')?.data===APP_CONF,solve:['cp /srv/app/conf/app.conf ~/ops/backup/app.conf.orig'],explain:'設定ファイルを変える前に控えを取るのは、運用の基本です。<code>.orig</code> や日付を付けた名前がよく使われます。'},
+  {kind:'task',title:'残骸を消す',body:'前任者が残した <code>~/old-desktop</code> は不要です。中身ごと削除してください。',hint:'中身のあるディレクトリは rmdir では消せません。',goal:s=>!g(s,'old-desktop'),solve:['rm -r ~/old-desktop'],explain:'<code>rm -r</code> は中身ごと消し、元に戻せません。消す前に <code>ls -R</code> で中身を確かめる習慣を付けておくと安全です。'},
+  {kind:'task',title:'ログへの近道を作る',body:'アプリのログの置き場所 <code>/var/log/app</code> へ、ホームから <code>applog</code> という名前ですぐ行けるように、シンボリックリンクを作ってください。',hint:'ln に、リンクを作るオプションを付けます。引数は「リンク先、リンクの名前」の順です。',
+    goal:s=>{ const n=s.fs.get(HOME+'/applog',false); return n?.type==='l'&&g(s,'applog')===g(s,'/var/log/app'); },solve:['ln -s /var/log/app ~/applog'],explain:'以後 <code>cd ~/applog</code> や <code>ls ~/applog/</code> でログを見られます。<code>ls -l</code> では <code>applog -&gt; /var/log/app</code> と表示されます。'},
+  {kind:'quiz',q:'中身の入ったディレクトリ <code>dir</code> に対して <code>rmdir dir</code> を実行すると？',a:'Directory not empty で失敗する',w:['中身ごと削除される','中身だけ削除される','確認を求められる'],ex:'rmdir は空のディレクトリしか消しません。中身ごと消すのは rm -r です。'},
+]},
+{phase:'基礎',name:'中身を確かめる',goal:'設定とログを、必要な部分だけ読む。',steps:[
+  {kind:'task',title:'設定ファイルの大きさ',body:'<code>/srv/app/conf/app.conf</code> の行数を、<strong>数だけ</strong>表示してください（ファイル名は出さない）。',hint:'行数を数えるコマンドに、ファイル名ではなく入力としてファイルを渡すと、数だけになります。',ref:'wc -l < /srv/app/conf/app.conf',solve:['wc -l < /srv/app/conf/app.conf'],
+    explain:'<code>wc -l ファイル</code> だとファイル名も出ます。<code>&lt;</code> で標準入力から渡すか、<code>cat ファイル | wc -l</code> にすると数だけです。'},
+  {kind:'task',title:'最新のログを見る',body:'アプリのログ <code>app.log</code>（<code>~/applog</code> の中）の、最後の 5 行を表示してください。',hint:'ファイルの末尾を表示するコマンドに、行数を指定します。',ref:'tail -n 5 /var/log/app/app.log',solve:['tail -n 5 ~/applog/app.log'],explain:'<code>tail -f</code> にすると、追記された行を表示し続けます（Ctrl+C で止める）。'},
+  {kind:'task',title:'設定の要点だけを見る',body:'<code>app.conf</code> から、<code>#</code> で始まるコメント行と空行を除いて表示してください。',hint:'一致しない行を出す grep のオプションと、行頭 <code>^</code>・行末 <code>$</code> の指定を使います。',ref:"grep -v -e '^#' -e '^$' /srv/app/conf/app.conf",solve:["grep -v -e '^#' -e '^$' /srv/app/conf/app.conf"],
+    explain:"<code>grep -Ev '^(#|$)'</code> でも同じです。設定ファイルの実際に効いている行だけを確かめるときの定番です。"},
+  {kind:'task',title:'OS の版を確かめる',body:'<code>/etc/os-release</code> の先頭 2 行を表示してください。',hint:'ファイルの先頭を表示するコマンドです。',ref:'head -n 2 /etc/os-release',solve:['head -n 2 /etc/os-release'],explain:'<code>head -2</code> とも書けます。'},
+  {kind:'quiz',q:'<code>less</code> で長いファイルを読んでいるとき、終了するキーは？',a:'q',w:['Ctrl+D',':wq','Esc'],ex:'less では q で終了、/文字列 で検索、n で次の一致へ移動します。:wq は vi の保存して終了です。'},
+  {kind:'quiz',q:'<code>tail -f /var/log/app/app.log</code> の動きは？',a:'末尾を表示したあと、追記された行を表示し続ける',w:['ファイルの先頭から表示する','ログを削除する','ログを圧縮する'],ex:'ログを見ながら操作を試すときに使います。止めるのは Ctrl+C です。'},
+]},
+{phase:'基礎',name:'探す',goal:'ファイルを名前・日付で探し、中身を文字列で探す。',steps:[
+  {kind:'task',title:'スクリプトを探す',body:'<code>/srv/app</code> 以下にある、名前が <code>.sh</code> で終わるファイルを find で探してください。',hint:'名前で探す find の条件に、<code>*.sh</code> を引用符で囲んで渡します。',ref:"find /srv/app -name '*.sh'",solve:["find /srv/app -name '*.sh'"],
+    explain:'<code>*</code> を引用符で囲まないと、カレントディレクトリに一致するファイルがあったときにシェルが先に展開してしまいます。'},
+  {kind:'task',title:'エラーを探す',body:'<code>app.log</code> から <code>ERROR</code> を含む行を、行番号付きで表示してください。',hint:'grep に、行番号を付けるオプションがあります。',ref:'grep -n ERROR /var/log/app/app.log',solve:['grep -n ERROR ~/applog/app.log'],explain:'DB への接続エラーが 2 回、バックアップの失敗が 1 回あります。'},
+  {kind:'task',title:'古いログを探す',body:'<code>/var/log/app</code> 以下で、更新から 30 日を超えた <code>.log</code> ファイルを探して表示してください（まだ消したり圧縮したりはしない）。',hint:'find の <code>-mtime</code> に + を付けた日数を指定します。',ref:"find /var/log/app -name '*.log' -mtime +30",solve:["find /var/log/app -name '*.log' -mtime +30"],
+    explain:'<code>-mtime +30</code> は「24 時間単位で切り捨てて 30 より大きい」、つまり 31 日以上前です。ステージ 10 でこれらを圧縮します。'},
+  {kind:'task',title:'設定の場所を探す',body:'<code>/etc</code> 以下で、<code>Listen</code> という文字列を含むファイルの<strong>名前だけ</strong>を表示してください。読めない場所のエラーは画面に出さないこと。',hint:'grep の再帰検索と、ファイル名だけを出すオプション、そして標準エラー出力（2）を捨てるリダイレクトです。',ref:'grep -rl Listen /etc 2>/dev/null',clean:true,solve:['grep -rl Listen /etc 2>/dev/null'],
+    explain:'<code>-r</code> で再帰、<code>-l</code> でファイル名だけ。<code>2&gt;/dev/null</code> で Permission denied などのエラーを捨てます。httpd の待ち受けポートは <code>httpd.conf</code> にあります。'},
+  {kind:'quiz',q:'<code>find /var/log -mtime -7</code> が探すのは？',a:'7 日以内に更新されたもの',w:['7 日より前に更新されたもの','ちょうど 7 日前に更新されたもの','7 分以内に更新されたもの'],ex:'- は「より新しい」、+ は「より古い」、記号なしは「ちょうど」です。分単位は -mmin。'},
+  {kind:'quiz',q:'コマンド <code>useradd</code> の実体がどこにあるかを調べるには？',a:'which useradd',w:['find useradd','locate -c useradd','pwd useradd'],ex:'which は PATH の中から探して場所を表示します。type useradd でも分かります。'},
+]},
+{phase:'加工',name:'つなぐ',goal:'パイプとリダイレクトで、結果をファイルに残す。',steps:[
+  {kind:'task',title:'エラーの件数を記録する',body:'<code>app.log</code> の <code>ERROR</code> を含む行の数を、<strong>数だけ</strong> <code>~/ops/reports/error_count.txt</code> に保存してください。',hint:'grep に一致した行数を数えるオプションがあります。結果は &gt; でファイルへ。',
+    goal:s=>g(s,'ops/reports/error_count.txt')?.data.trim()===String(errLines(s).length),solve:['grep -c ERROR ~/applog/app.log > ~/ops/reports/error_count.txt'],explain:'<code>grep ERROR … | wc -l &gt; …</code> でも同じです。'},
+  {kind:'task',title:'画面とファイルの両方へ',body:'<code>ERROR</code> を含む行を、画面に表示しながら <code>~/ops/reports/errors.txt</code> にも保存してください。',hint:'パイプの途中で、流れてきた内容をファイルにも書き出すコマンドがあります。',
+    goal:s=>{ const n=g(s,'ops/reports/errors.txt'); const want=errLines(s).map(l=>l+'\n').join(''); return !!n&&n.data===want&&s.flags.lastStdout===want; },solve:['grep ERROR ~/applog/app.log | tee ~/ops/reports/errors.txt'],explain:'<code>tee</code> は T 字の配管のように、入力を画面とファイルの両方に流します。<code>-a</code> で追記。'},
+  {kind:'task',title:'作業記録に追記する',pre:s=>{ s.silent("printf '# worklog\\n' > ~/ops/reports/worklog.txt",'student'); },body:'<code>~/ops/reports/worklog.txt</code> の末尾に、<code>date</code> コマンドの結果を追記してください。今ある見出しの行は残すこと。',hint:'&gt; は上書き、&gt;&gt; は追記です。',
+    goal:s=>{ const l=linesOf(g(s,'ops/reports/worklog.txt')?.data||'').ls; return l[0]==='# worklog'&&l.length>=2&&/JST/.test(l[l.length-1]); },
+    trap:s=>{ const n=g(s,'ops/reports/worklog.txt'); return n&&!n.data.startsWith('# worklog')?'見出しの行が消えました。> で上書きしています（>> なら追記）':null; },solve:['date >> ~/ops/reports/worklog.txt'],explain:'<code>&gt;</code> はコマンドが動く前にファイルを空にします。記録を足すときは必ず <code>&gt;&gt;</code>。'},
+  {kind:'task',title:'結果だけをファイルへ',body:'システム全体（<code>/</code>）から名前が <code>.conf</code> で終わるものを探し、結果を <code>~/ops/reports/conf_list.txt</code> に保存してください。エラーは捨てて、画面には何も出さないこと。',hint:'標準出力はファイルへ、標準エラー出力は /dev/null へ、別々に向けます。',
+    goal:s=>{ const n=g(s,'ops/reports/conf_list.txt'); return !!n&&n.data.includes('/etc/httpd/conf/httpd.conf\n')&&!s.flags.lastStdout&&!s.flags.lastStderr; },solve:["find / -name '*.conf' > ~/ops/reports/conf_list.txt 2>/dev/null"],
+    explain:'<code>&gt;</code> は標準出力（1）、<code>2&gt;</code> は標準エラー出力。両方をファイルに入れるなら <code>&gt; f 2&gt;&amp;1</code> です。'},
+  {kind:'quiz',q:'<code>ls nosuch &gt; out.txt 2&gt;&amp;1</code> と <code>ls nosuch 2&gt;&amp;1 &gt; out.txt</code> の違いは？',a:'後者はエラーが画面に出る',w:['違いはない','前者はエラーが画面に出る','後者は構文エラーになる'],ex:'リダイレクトは左から処理されます。後者では 2 が先に「今の 1（画面）」を指すので、エラーは画面に残ります。'},
+  {kind:'quiz',q:'<code>|</code>（パイプ）と <code>&gt;</code>（リダイレクト）の違いは？',a:'| は次のコマンドに渡し、> はファイルに書く',w:['| はファイルに書き、> は次のコマンドに渡す','どちらもファイルに書く','| はエラーだけを渡す'],ex:'cmd1 | cmd2 は cmd1 の標準出力を cmd2 の標準入力につなぎます。'},
+]},
+{phase:'加工',name:'集計する',goal:'アクセスログを切り出し、並べ替え、数える。',steps:[
+  {kind:'task',title:'アクセス元の順位',body:'<code>/srv/app/logs/access.log</code> の 1 列目（IP アドレス）ごとのアクセス数を、多い順に <code>~/ops/reports/ip_rank.txt</code> に保存してください（<code>uniq -c</code> の形で）。',hint:'cut で 1 列目を切り出し、sort、uniq -c、もう一度 sort（数値の大きい順）です。',
+    goal:s=>{ const n=g(s,'ops/reports/ip_rank.txt'); if(!n) return false; const rows=linesOf(n.data).ls.map(l=>/^\s*(\d+)\s+(\S+)$/.exec(l)); const m=new Map(); ACCESS.forEach(([ip])=>m.set(ip,(m.get(ip)||0)+1)); const exp=[...m].sort((a,b)=>b[1]-a[1]);
+      return rows.length===exp.length&&rows.every((r,k)=>r&&+r[1]===exp[k][1]&&r[2]===exp[k][0]); },
+    solve:["cut -d' ' -f1 /srv/app/logs/access.log | sort | uniq -c | sort -rn > ~/ops/reports/ip_rank.txt"],explain:'uniq は隣り合った行しかまとめないので、先に sort します。最後の <code>sort -rn</code> で数の大きい順に。'},
+  {kind:'task',title:'404 の件数',body:'<code>access.log</code> で、ステータスコード（9 列目）が <code>404</code> の行の数を表示してください。',hint:"grep -c に、前後に空白を付けた ' 404 ' を渡すと、ほかの列の数字に一致しません。",ref:"grep -c ' 404 ' /srv/app/logs/access.log",solve:["grep -c ' 404 ' /srv/app/logs/access.log"],explain:"<code>cut -d' ' -f9 … | grep -c 404</code> でも数えられます。"},
+  {kind:'task',title:'ログインできるユーザー',body:'<code>/etc/passwd</code> から、ログインシェルが <code>/bin/bash</code> のユーザーの<strong>名前だけ</strong>を表示してください。',hint:'grep で行を選び（行末は $）、cut で区切り文字 : の 1 列目を取り出します。',ref:"grep '/bin/bash$' /etc/passwd | cut -d: -f1",solve:["grep '/bin/bash$' /etc/passwd | cut -d: -f1"],explain:'<code>/sbin/nologin</code> のユーザーはサービス用で、ログインできません。'},
+  {kind:'task',title:'置換の試し',body:'<code>app.conf</code> の <code>Port=8080</code> を <code>Port=8081</code> に置き換えた結果を表示してください。ファイルは変えないこと。',hint:"sed の s/前/後/ です。-i を付けるとファイルが変わります。",ref:"sed 's/Port=8080/Port=8081/' /srv/app/conf/app.conf",solve:["sed 's/Port=8080/Port=8081/' /srv/app/conf/app.conf"],
+    explain:'まず表示で確かめ、問題なければ <code>-i</code> でファイルを書き換える、という順に使うと安全です。'},
+  {kind:'quiz',q:'<code>sort access.log | uniq -c</code> で sort が必要な理由は？',a:'uniq は隣り合った同じ行しかまとめないから',w:['uniq はファイルを読めないから','uniq -c は数値順に並べるから','sort しないとエラーになるから'],ex:'離れた場所にある同じ行は、sort で隣に集めてから数えます。'},
+  {kind:'quiz',q:'10、9、100 を数値の小さい順に並べる sort のオプションは？',a:'-n',w:['-r','-u','-f'],ex:'-n がないと文字として比べるので、10、100、9 の順になります。'},
+]},
+{phase:'管理',name:'権限を整える',goal:'スクリプト、報告、共有の場所に、必要なだけの権限を付ける。',steps:[
+  {kind:'task',title:'スクリプトを手元に',body:'<code>/srv/app/bin/backup.sh</code> を <code>~/ops/scripts/</code> にコピーし、<strong>自分（所有者）だけ</strong>が読み・書き・実行できる権限にしてください。',hint:'rwx------ を数値で書くと？',goal:s=>{ const n=g(s,'ops/scripts/backup.sh'); return n?.data===BACKUP_SH&&perm(n)===0o700; },solve:['cp /srv/app/bin/backup.sh ~/ops/scripts/','chmod 700 ~/ops/scripts/backup.sh'],
+    explain:'r=4、w=2、x=1 の合計を、所有者・グループ・その他の順に並べます。<code>chmod u=rwx,go= …</code> でも同じです。'},
+  {kind:'task',title:'報告をチームに見せる',body:'<code>~/ops/reports/ip_rank.txt</code> のグループを <code>web</code> にし、グループは読み取りだけ、その他は何もできない権限にしてください。',hint:'グループを変える chgrp と、chmod の 640 です。',goal:s=>{ const n=g(s,'ops/reports/ip_rank.txt'); return n?.gid===CP.gid&&perm(n)===0o640; },solve:['chgrp web ~/ops/reports/ip_rank.txt','chmod 640 ~/ops/reports/ip_rank.txt'],
+    explain:'自分が所属しているグループになら、root でなくても chgrp できます。ただし、ホーム（700）の中にあるので、ほかの人が実際に読むにはホームへの通り道（x）も必要です。'},
+  {kind:'task',title:'チームの共有ディレクトリ',body:'チームの共有ディレクトリ <code>/srv/share</code> を作ってください。グループは <code>web</code>、<code>web</code> のメンバーは読み書きでき、その他は何もできない。中に作ったファイルは自動で <code>web</code> グループになること。',hint:'/srv には root でないと作れません。最後の条件は SGID（chmod の 2000）です。',
+    goal:s=>{ const n=g(s,'/srv/share'); return isDir(n)&&n.gid===CP.gid&&perm(n)===0o2770; },solve:['sudo mkdir /srv/share','sudo chgrp web /srv/share','sudo chmod 2770 /srv/share'],
+    explain:'ディレクトリの SGID（<code>drwxrws---</code> の s）は、中に作ったファイルのグループを親から引き継がせます。ステージ 8 で効果を確かめます。'},
+  {kind:'task',title:'受け渡し用の置き場',body:'誰でもファイルを置けるが、<strong>他人のファイルは消せない</strong>ディレクトリ <code>/srv/upload</code> を作ってください。',hint:'/tmp と同じ設定です。',goal:s=>{ const n=g(s,'/srv/upload'); return isDir(n)&&perm(n)===0o1777; },solve:['sudo mkdir /srv/upload','sudo chmod 1777 /srv/upload'],
+    explain:'1000 がスティッキービット（<code>drwxrwxrwt</code> の t）。ファイルを消せるのは、その所有者とディレクトリの所有者と root だけになります。'},
+  {kind:'quiz',q:'umask が 022 のとき、touch で作ったファイルの権限は？',a:'644',w:['755','666','022'],ex:'ファイルの初期値 666 から 022 を落として 644。ディレクトリは 777 から落として 755 です。RHEL 9 の既定は 022 です。'},
+  {kind:'quiz',q:'<code>-rwsr-xr-x root root /usr/bin/passwd</code> の s があるおかげで、できることは？',a:'一般ユーザーが自分のパスワードを変更できる',w:['誰でも root のパスワードを変更できる','passwd を消せなくなる','passwd が自動で起動する'],ex:'SUID により、passwd は実行したユーザーではなく所有者 root の権限で動き、/etc/shadow を書き換えられます。'},
+]},
+{phase:'管理',name:'メンバーを迎える',goal:'新メンバーのアカウントを作り、チームの権限を渡す。',steps:[
+  {kind:'task',title:'アカウントを作る',body:'新しいメンバー <code>sato</code> を、ホームディレクトリ付きで作り、補助グループ <code>web</code> に入れてください。',hint:'useradd の -m と -G です。root 権限が必要です。',goal:s=>!!s.user('sato')&&isDir(g(s,'/home/sato'))&&inGroup(s,'web','sato'),solve:['sudo useradd -m -G web sato'],
+    explain:'RHEL 系では、同じ名前のグループ <code>sato</code> も自動で作られ、主グループになります。'},
+  {kind:'task',title:'パスワードを設定する',body:'<code>sato</code> のパスワードを <code>birch#5506</code> に設定してください。',hint:'root は他人のパスワードを設定できます。入力は画面に出ません。',goal:s=>s.pwOk('sato',CP.satopw),solve:['sudo passwd sato'],newPw:CP.satopw,
+    explain:'作った直後のアカウントは、パスワードが未設定（<code>/etc/shadow</code> の 2 列目が <code>!!</code>）でログインできません。'},
+  {kind:'task',title:'sudo も使えるように',body:'<code>sato</code> も sudo を使えるように、<code>wheel</code> グループに加えてください。<code>web</code> からは外さないこと。',hint:'usermod で補助グループを「追加」するには、-G だけでは足りません。',
+    goal:s=>inGroup(s,'wheel','sato')&&inGroup(s,'web','sato'),trap:s=>inGroup(s,'wheel','sato')&&!inGroup(s,'web','sato')?'web から外れました。-a を付けずに -G を使うと、補助グループが置き換わります（sudo usermod -aG web sato で戻せます）':null,solve:['sudo usermod -aG wheel sato'],
+    explain:'<code>-a</code>（append）がないと、補助グループは指定したものだけに置き換わります。'},
+  {kind:'task',title:'sato として共有ディレクトリを使う',body:'<code>sato</code> にログインシェルで切り替え、<code>/srv/share</code> に <code>note.txt</code> を作ってください。作ったら <code>exit</code> で student に戻ること。',hint:'su に - を付けると、切り替え先のログインシェルになります。聞かれるのは sato のパスワードです。',
+    goal:s=>{ const n=g(s,'/srv/share/note.txt'); return isFile(n)&&n.uid===s.user('sato').uid&&n.gid===CP.gid&&s.cur().user==='student'; },solve:['su - sato','touch /srv/share/note.txt','exit'],suPw:CP.satopw,
+    explain:'<code>ls -l /srv/share</code> で見ると、作った人が sato でもグループは <code>web</code> になっています。ステージ 7 の SGID の効果です。'},
+  {kind:'task',title:'所属を確かめる',body:'<code>sato</code> の所属（UID とグループ）を表示して確かめてください。',hint:'ステージ 1 で使ったコマンドに、ユーザー名を付けます。',ref:'id sato',solve:['id sato'],explain:'<code>groups sato</code> でもグループだけ表示できます。'},
+  {kind:'quiz',q:'student が <code>sudo</code> を実行したときと、<code>su -</code> を実行したときに聞かれるパスワードの組み合わせは？',a:'sudo は student のもの、su は root のもの',w:['どちらも root のもの','どちらも student のもの','sudo は root のもの、su は student のもの'],ex:'sudo は「本人確認」なので自分のパスワード、su は切り替え先（既定は root）のパスワードを聞きます。'},
+]},
+{phase:'管理',name:'サービスを動かす',goal:'Web サーバーを起動し、暴走したプロセスを止める。',steps:[
+  {kind:'task',title:'httpd の状態を見る',body:'Web サーバー <code>httpd</code> の状態を表示してください。',hint:'systemctl のサブコマンドです。',ref:'systemctl status httpd',solve:['systemctl status httpd'],explain:'<code>Loaded</code> 行の <code>disabled</code> は自動起動しない設定、<code>Active</code> 行の <code>inactive (dead)</code> は止まっている状態です。'},
+  {kind:'task',title:'httpd を動かす',body:'<code>httpd</code> を今すぐ起動し、次回の起動時にも自動で起動するようにしてください。',hint:'start と enable を 1 回で行うオプションがあります。root 権限が必要です。',
+    goal:s=>s.svcs.httpd.active&&!!s.fs.get('/etc/systemd/system/multi-user.target.wants/httpd.service',false),solve:['sudo systemctl enable --now httpd'],
+    explain:'<code>start</code> は今だけ、<code>enable</code> は次回の起動から。<code>enable --now</code> で両方です。'},
+  {kind:'task',title:'待ち受けを確かめる',body:'待ち受け中の TCP ポートを番号で表示し、80 番が開いたことを確かめてください。',hint:'ss に、TCP（t）・待ち受け（l）・番号のまま（n）のオプションを付けます。',ref:'ss -tln',solve:['ss -tln'],explain:'<code>0.0.0.0:80</code> と <code>[::]:80</code> の行が増えています。'},
+  {kind:'task',title:'止まらないプロセス',pre:s=>{ s.extra.push({pid:3412,uid:1000,cmd:'/bin/bash /srv/app/bin/report.sh --loop',name:'report.sh',ignoreTerm:true,cpu:'99.2',stat:'R'}); },
+    body:'<code>report.sh</code> が終わらず、CPU を使い続けています。通常の終了要求は無視されるので、強制終了してください。',hint:'ps aux で PID を調べます。シグナル 9 は無視できません。',goal:s=>!s.extra.some(x=>x.pid===3412),solve:['kill -9 3412'],
+    explain:'kill は既定で SIGTERM（15）を送ります。無視するプロセスには SIGKILL（9）。<code>pkill -9 report.sh</code> でも止められます。'},
+  {kind:'quiz',q:'<code>systemctl enable httpd</code> だけを実行した直後の httpd は？',a:'止まったまま。次回の起動から自動で起動する',w:['今すぐ起動する','今すぐ起動し、次回も起動する','削除される'],ex:'今すぐ起動するのは start です。'},
+  {kind:'quiz',q:'kill で何も指定しないときに送られるシグナルは？',a:'SIGTERM（15）',w:['SIGKILL（9）','SIGHUP（1）','SIGSTOP（19）'],ex:'SIGTERM は「終了してください」という依頼で、プロセスは後始末や無視ができます。'},
+]},
+{phase:'管理',name:'バックアップをとる',goal:'作業の控えをまとめ、古いログを圧縮する。',steps:[
+  {kind:'task',title:'作業一式をまとめる',body:'<code>~/ops</code> ディレクトリを、gzip で圧縮した tar アーカイブ <code>~/ops.tar.gz</code> にまとめてください。',hint:'tar の c（作る）、z（gzip）、f（ファイル名）です。f の直後がファイル名になります。',
+    goal:s=>{ const n=g(s,'ops.tar.gz'); if(!n||!n.bin) return false; const {layers,core}=unwrapArc(n.bin); return layers[0]==='gz'&&core?.kind==='tar'&&core.entries.some(e=>e.name.endsWith('ops/reports/ip_rank.txt')); },solve:['cd','tar czf ops.tar.gz ops'],
+    explain:'<code>tar czf ~/ops.tar.gz ~/ops</code> のように絶対パスで書くと、中の名前は先頭の <code>/</code> を取った <code>home/student/ops/…</code> になります。'},
+  {kind:'task',title:'中身を確かめる',body:'<code>ops.tar.gz</code> の中身を、展開せずに一覧表示してください。',hint:'tar の t です。',ref:'tar tzf ~/ops.tar.gz',solve:['tar tzf ~/ops.tar.gz'],explain:'GNU tar は読むときに圧縮形式を自動で判別するので、<code>tar tf</code> でも表示できます。'},
+  {kind:'task',title:'戻せるか試す',body:'<code>/tmp/restore</code> を作り、その下に <code>ops.tar.gz</code> を展開してください。',hint:'展開先を指定する -C を使うか、cd してから展開します。',goal:s=>isFile(g(s,'/tmp/restore/ops/reports/ip_rank.txt'))||isFile(g(s,'/tmp/restore/home/student/ops/reports/ip_rank.txt')),solve:['mkdir /tmp/restore','tar xzf ~/ops.tar.gz -C /tmp/restore'],
+    explain:'バックアップは、実際に戻せることを確かめるまでが仕事です。'},
+  {kind:'task',title:'古いログを圧縮する',body:'メモに従い、<code>/var/log/app</code> にある、更新から 30 日を超えた <code>.log</code> ファイルを、find を使ってまとめて gzip で圧縮してください（root 権限が必要）。',hint:'ステージ 4 で使った find の条件に、見つけたものを gzip に渡す -exec を付けます。',
+    goal:s=>OLD_LOGS().every(p=>!g(s,p)&&g(s,p+'.gz')?.bin?.kind==='gz')&&NEW_LOGS().every(p=>isFile(g(s,p))&&!g(s,p+'.gz'))&&isFile(g(s,'/var/log/app/app.log')),
+    trap:s=>NEW_LOGS().some(p=>!g(s,p))||!g(s,'/var/log/app/app.log')?'30 日以内のログまで圧縮（または削除）しました':null,solve:["sudo find /var/log/app -name '*.log' -mtime +30 -exec gzip {} \\;"],
+    explain:'<code>{}</code> が見つかったファイル名に置き換わり、<code>\\;</code> で 1 件ずつ実行します。実運用では logrotate が自動で行うことが多い作業です。'},
+  {kind:'quiz',q:'tar のオプションで、c・x・t の意味の組み合わせは？',a:'c=作成、x=展開、t=一覧',w:['c=圧縮、x=削除、t=時刻','c=確認、x=実行、t=転送','c=作成、x=圧縮、t=展開'],ex:'z（gzip）、j（bzip2）、J（xz）、v（表示）、f（ファイル名）と組み合わせます。'},
+  {kind:'quiz',q:'<code>gzip app.log</code> を実行した後のファイルは？',a:'app.log.gz だけが残る',w:['app.log と app.log.gz の両方が残る','app.log だけが残る','app.gz になる'],ex:'gzip は元のファイルを消します。残すなら -k を付けます。'},
+]},
+{phase:'管理',name:'シェルを整える',goal:'変数とエイリアスで手間を減らし、スクリプトを動かす。',steps:[
+  {kind:'task',title:'環境変数',body:'変数 <code>BACKUP_DIR</code> に <code>/home/student/backup</code> を入れ、子プロセスにも引き継がれるようにしてください。',hint:'変数を作って子にも渡すコマンドです。',goal:s=>{ const e=s.cur().vars.get('BACKUP_DIR'); return !!e&&e.x&&e.v.replace(/\/$/,'')===HOME+'/backup'; },solve:['export BACKUP_DIR=/home/student/backup'],
+    explain:'<code>BACKUP_DIR=…</code> だけではシェル変数で、スクリプトなどの子プロセスには渡りません。'},
+  {kind:'task',title:'近道の別名',body:'<code>ops</code> と打つと <code>~/ops</code> に移動できる別名（エイリアス）を作ってください。',hint:"alias 名前='コマンド' です。",goal:s=>/^cd\s+(~\/ops|\/home\/student\/ops|\$HOME\/ops)\/?$/.test(s.cur().aliases.get('ops')||''),solve:["alias ops='cd ~/ops'"],
+    explain:'ログインのたびに使いたいなら、<code>~/.bashrc</code> に同じ行を書いておきます。'},
+  {kind:'task',title:'バックアップを実行する',body:'保存先として <code>~/backup</code> を作り、<code>~/ops/scripts/backup.sh</code> を、保存先を引数にして実行してください。',hint:'スクリプトの中では、最初の引数が $1 として使われます。',goal:s=>g(s,'backup/app-conf.tar.gz')?.bin?.kind==='gz',solve:['mkdir -p ~/backup','~/ops/scripts/backup.sh ~/backup'],
+    explain:'<code>cat ~/ops/scripts/backup.sh</code> で中を見ると、<code>"$1/app-conf.tar.gz"</code> に保存しています。tar が出す <code>Removing leading `/\'</code> はエラーではなくお知らせです。'},
+  {kind:'task',title:'自分のコマンドを作る',body:'<code>~/bin/today</code> というスクリプトを作ってください。1 行目は <code>#!/bin/bash</code>、2 行目は <code>date +%F</code>。実行権を付け、<code>today</code> とだけ打って動かします。',hint:"エディタがないので、printf '1 行目\\n2 行目\\n' &gt; ファイル で作ります。% は printf では %% と書きます。~/bin はもともと PATH に入っています。",
+    goal:s=>{ const n=g(s,'bin/today'); return isFile(n)&&(n.mode&0o100)!==0&&/^\d{4}-\d\d-\d\d\n$/.test(s.flags.lastStdout)&&s.flags.scripts.length>0; },
+    solve:['mkdir -p ~/bin',"printf '#!/bin/bash\\ndate +%%F\\n' > ~/bin/today",'chmod +x ~/bin/today','today'],explain:'<code>echo $PATH</code> を見ると <code>/home/student/bin</code> が入っています。ここに置いた実行ファイルは名前だけで動きます。'},
+  {kind:'quiz',q:'<code>backup.sh /data/bk</code> と実行したとき、スクリプトの中の <code>$1</code> と <code>$#</code> は？',a:'$1 は /data/bk、$# は 1',w:['$1 は backup.sh、$# は 2','$1 は /data/bk、$# は 2','$1 は空、$# は 0'],ex:'$0 がスクリプトの名前、$1 から順に引数、$# は引数の個数です。'},
+  {kind:'quiz',q:'ログインしたときに読まれ、PATH の追加などを書くのに向くファイルは？',a:'~/.bash_profile',w:['~/.bash_logout','~/.bash_history','/etc/skel'],ex:'~/.bashrc は対話的なシェルを起動するたびに読まれます。RHEL 系では .bash_profile から .bashrc も読みます。'},
+]},
+{phase:'総仕上げ',name:'障害対応',goal:'症状から原因を調べて直す。手順は自分で考える。',steps:[
+  {kind:'trouble',title:'sato がログインできない',pre:s=>{ s.silent('usermod -s /sbin/nologin sato; passwd -l sato','root'); },
+    body:'sato さんから「パスワードは合っているはずなのにログインできない」と連絡がありました。アカウントの設定を調べ、ログインできるように直してください。',hint:"見るべき場所は 2 つあります。<code>grep sato /etc/passwd</code> の最後の列と、<code>sudo passwd -S sato</code>（または /etc/shadow の 2 列目）。",
+    goal:s=>s.user('sato')?.shell==='/bin/bash'&&s.pwOk('sato',CP.satopw),solve:['sudo usermod -s /bin/bash sato','sudo usermod -U sato'],
+    explain:'ログインシェルが <code>/sbin/nologin</code> になっていて、パスワードもロック（先頭の <code>!</code>）されていました。<code>usermod -s</code> でシェルを戻し、<code>usermod -U</code>（または <code>passwd -u</code>）でロックを外します。'},
+  {kind:'trouble',title:'Web ページが 403 になる',pre:s=>{ s.silent('chmod 600 /var/www/html/index.html','root'); place(s,'/var/log/httpd/error_log',{data:`[${WDAY[jst(Date.now()).getUTCDay()]} ${MON[jst(Date.now()).getUTCMonth()]} ${pad2(jst(Date.now()).getUTCDate())} 11:02:41 ${jst(Date.now()).getUTCFullYear()}] [core:error] [pid 4231] (13)Permission denied: [client 192.168.10.7:51544] AH00132: file permissions deny server access: /var/www/html/index.html\n`,mode:0o644}); },
+    body:'httpd を起動したのに、トップページを開くと <code>403 Forbidden</code> になるそうです。httpd のエラーログを調べて原因を見つけ、直してください。',hint:'エラーログは <code>/var/log/httpd/error_log</code> です（ディレクトリは root しか入れません）。httpd は apache ユーザーとして動きます。',
+    goal:s=>{ const n=g(s,'/var/www/html/index.html'); return !!n&&(n.mode&0o004)!==0&&s.svcs.httpd.active; },solve:['sudo cat /var/log/httpd/error_log','sudo chmod 644 /var/www/html/index.html'],
+    explain:'ログに <code>file permissions deny server access</code> とあり、index.html が 600（root だけが読める）でした。apache ユーザーは「その他」なので、644 にして読めるようにします。'},
+  {kind:'trouble',title:'ディスクがいっぱい',pre:s=>{ place(s,'/var/tmp/dump/core.4821',{fake:15300000*1024,mode:0o600,age:1}); },
+    body:'「ファイルが保存できない」という報告がありました。<code>/</code> のディスクの使用量を確かめ、容量を圧迫している大きなファイルを見つけて削除してください（不要な一時ファイルです）。',hint:'<code>df -h</code> で使用率、<code>sudo find / -size +1G 2&gt;/dev/null</code> や <code>sudo du -sh /var/*</code> で大きなものを探します。',
+    goal:s=>!g(s,'/var/tmp/dump/core.4821'),solve:['df -h','sudo find / -size +1G 2>/dev/null','sudo rm /var/tmp/dump/core.4821'],
+    explain:'df でファイルシステム全体の使用率、du や find -size で原因の場所を絞り込みます。削除後にもう一度 <code>df -h</code> を見ると、使用率が戻っています。'},
+  {kind:'trouble',title:'sudo が使えなくなった',pre:s=>{ s.silent('gpasswd -d student wheel','root'); s.sudoOk={}; },
+    body:'自分（student）で sudo を実行すると、<code>student is not in the sudoers file.</code> と言われるようになりました。root のパスワード <code>cedar#7319</code> を使い、自分が sudo を使えるように直してください。',hint:'id で所属を確かめます。sudo が使えないので、root に切り替える別の方法（su）を使います。',
+    goal:s=>inGroup(s,'wheel','student'),solve:["su -c 'usermod -aG wheel student'"],suPw:CP.rootpw,
+    explain:'wheel から外されていました。sudo が使えないときは <code>su -</code> で root になって直します。<code>usermod -aG wheel student</code> の <code>-a</code> を忘れると、web などから外れてしまいます。'},
+  {kind:'trouble',title:'バックアップスクリプトが動かない',pre:s=>{ s.silent('chmod 644 ~/ops/scripts/backup.sh','student'); },
+    body:'<code>~/ops/scripts/backup.sh ~/backup</code> を実行すると <code>Permission denied</code> になるようになりました。原因を調べて直し、実際に実行してバックアップを作り直してください。',hint:'ls -l で権限を見ます。',
+    goal:s=>{ const n=g(s,'ops/scripts/backup.sh'); return !!n&&(n.mode&0o100)!==0&&s.flags.scripts.some(p=>p.includes('backup.sh')); },solve:['chmod u+x ~/ops/scripts/backup.sh','~/ops/scripts/backup.sh ~/backup'],
+    explain:'実行権（x）が外れていました。<code>bash ~/ops/scripts/backup.sh ~/backup</code> のように bash に読ませれば実行権がなくても動きますが、元の運用に戻すには x を付けます。'},
+  {kind:'quiz',q:'RHEL 系で、sudo や ssh のログイン（認証）の記録が書かれるログは？',a:'/var/log/secure',w:['/var/log/messages','/var/log/httpd/error_log','/var/log/dnf.log'],ex:'認証関係は authpriv ファシリティで、/var/log/secure に書かれます。journalctl でも見られます。'},
+]},
+];
+STAGES.forEach((st,si)=>st.steps.forEach((x,k)=>{ x.id=`s${si+1}-${k+1}`; x.si=si; x.k=k; }));
+const ALL=STAGES.flatMap(s=>s.steps);
+
+/* ================= 状態をそろえる ================= */
+/* パスワードを聞かれたときに、模範解答で答える内容 */
+function autoAnswer(text,step){
+  if(text.startsWith('[sudo]')) return CP.stupw;
+  if(text.startsWith('Current password')) return CP.stupw;
+  if(/^(New|Retype new) password/.test(text)) return step.newPw||'';
+  return step.suPw||CP.rootpw;   // su の Password:
+}
+function runSolve(sim,step){
+  if(step.kind==='quiz') return;
+  for(const c of step.solve){ sim.submit(c); let guard=0; while(sim.ask&&guard++<8) sim.submit(autoAnswer(sim.ask.text,step)); }
+}
+/* 位置 (si,k) の課題を始める直前の状態を作る。それより前の課題は模範解答を適用する */
+function rebuild(sim,si,k){
+  const t=sim.t, after=sim.onAfter; sim.t=null; sim.onAfter=null;
+  sim.reset(CP); setupWorld(sim);
+  for(const x of ALL){ if(x.si>si||(x.si===si&&x.k>k)) break;
+    if(x.pre) x.pre(sim);
+    if(x.si===si&&x.k===k) break;
+    runSolve(sim,x); while(sim.shells.length>1) sim.popShell(); }
+  normalize(sim); sim.t=t; sim.onAfter=after;
+  if(t){ t.clear(); t.hist=[]; t.hi=0; }
+  sim.refresh();
+}
+/* 課題の切り替わりで、記録と表示の基準を新しくする */
+function normalize(sim){
+  sim.buf=''; sim.ask=null; sim.queue=null;
+  sim.flags.lastStdout=''; sim.flags.lastStderr=''; sim.flags.scripts=[]; sim.flags.unsup=false; sim.flags.internal=null;
+  sim.stats={cmds:0,errs:0}; sim.lineOut={out:'',err:''}; sim.outBuf=[];
+}
+/* 正しい表示を、今の状態のまま作る（読み取りだけのコマンドなので、状態は変わらない） */
+function refOut(sim,cmd,cwd){
+  const sh=sim.cur().fork(); if(cwd) sh.cwd=cwd; sh.isSub=true;
+  const out={tty:true,buf:'',write(x){ this.buf+=x; }};
+  const keep=[sim.outBuf,sim.lineOut]; sim.outBuf=[]; sim.lineOut={out:'',err:''};
+  try{ sim.execList(parseShell(lexShell(cmd).toks),sh,{stdin:null,stdout:out,stderr:nullSink}); }catch(e){}
+  [sim.outBuf,sim.lineOut]=keep; return out.buf;
+}
+function judge(sim,step){
+  if(step.ref){ const got=sim.flags.lastStdout; if(!got) return null;
+    if(step.refCwd&&sim.cur().cwd!==step.refCwd) return null;
+    return got===refOut(sim,step.ref,step.refCwd)&&(!step.clean||!sim.flags.lastStderr)?true:'miss'; }
+  if(step.goal(sim)) return true;
+  const tr=step.trap&&step.trap(sim); return tr||null;
+}
+
+/* ================= 画面 ================= */
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const STORE='lxcourse.v1';
+const store={ get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
+const saved=store.get(STORE,{});
+const prog=saved.p||{};            // {課題 id: {f: 初回, l: 最後}}  o か x
+const cur={si:saved.si||0,k:saved.k||0,state:'play',revealed:false,hint:false,picked:null};
+function persist(){ store.set(STORE,{p:prog,si:cur.si,k:cur.k}); }
+function record(step,ok){ const r=prog[step.id]; prog[step.id]=r?{f:r.f,l:ok?'o':'x'}:{f:ok?'o':'x',l:ok?'o':'x'}; persist(); }
+const stageStat=st=>{ const n=st.steps.length, done=st.steps.filter(x=>prog[x.id]).length, fixed=st.steps.filter(x=>prog[x.id]?.l==='o').length; return {n,done,fixed,clear:fixed===n}; };
+
+class Term{
+  constructor(root){ this.sc=root.querySelector('.t-scroll'); this.out=root.querySelector('.t-out'); this.pr=root.querySelector('.t-pr'); this.inp=root.querySelector('.t-inp');
+    this.hist=[]; this.hi=0; this.sim=null;
+    this.sc.addEventListener('click',()=>{ if(!String(window.getSelection()||'')) this.focus(); });
+    this.inp.addEventListener('keydown',e=>this.key(e)); }
+  key(e){ const s=this.sim; if(!s||e.isComposing||e.keyCode===229) return;
+    if(e.ctrlKey&&(e.key==='c'||e.key==='C')&&this.inp.selectionStart===this.inp.selectionEnd&&!String(window.getSelection()||'')){ e.preventDefault(); const v=this.inp.value; this.inp.value=''; s.ctrlC(v); return; }
+    if(e.ctrlKey&&(e.key==='l'||e.key==='L')){ e.preventDefault(); this.clear(); return; }
+    if(e.key==='Enter'){ e.preventDefault(); this.enter(); return; }
+    if(e.key==='Tab'){ e.preventDefault(); this.tab(); return; }
+    if(e.key==='ArrowUp'){ e.preventDefault(); this.histMove(-1); return; }
+    if(e.key==='ArrowDown'){ e.preventDefault(); this.histMove(1); return; } }
+  enter(){ const v=this.inp.value; this.inp.value=''; if(!this.sim.ask&&v.trim()){ this.hist.push(v); if(this.hist.length>80) this.hist.shift(); } this.hi=this.hist.length; this.sim.submit(v); }
+  tab(){ const r=this.sim.complete(this.inp.value); if(r!=null){ this.inp.value=r; this.inp.setSelectionRange(r.length,r.length); } }
+  histMove(d){ if(!this.hist.length||this.sim.ask) return; this.hi=Math.max(0,Math.min(this.hist.length,this.hi+d)); this.inp.value=this.hist[this.hi]||''; const n=this.inp.value.length; this.inp.setSelectionRange(n,n); }
+  insert(t){ const i=this.inp, a=i.selectionStart==null?i.value.length:i.selectionStart; i.value=i.value.slice(0,a)+t+i.value.slice(a); i.setSelectionRange(a+t.length,a+t.length); }
+  print(s,cls){ const el=document.createElement('span'); if(cls) el.className=cls; el.textContent=s+'\n'; this.out.appendChild(el); while(this.out.childNodes.length>1500) this.out.removeChild(this.out.firstChild); this.scroll(); }
+  scroll(){ this.sc.scrollTop=this.sc.scrollHeight; }
+  clear(){ this.out.textContent=''; }
+  setPrompt(p){ this.pr.textContent=p; this.scroll(); }
+  setMask(b){ this.inp.classList.toggle('mask',b); }
+  focus(){ try{ this.inp.focus({preventScroll:true}); }catch(e){} }
+}
+const term=new Term($('#term')); const sim=new Sim(term);
+$('#keybar').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; const k=b.dataset.k;
+  if(k==='tab') term.tab(); else if(k==='up') term.histMove(-1); else if(k==='down') term.histMove(1); else if(k==='c'){ const v=term.inp.value; term.inp.value=''; sim.ctrlC(v); } else term.insert(k); term.focus(); });
+
+const step=()=>STAGES[cur.si].steps[cur.k];
+/* サーバーの状況パネル */
+function renderStatus(){
+  const svc=n=>`<span class="dot ${sim.svcs[n].active?'on':'off'}"></span>${n}`;
+  const used=(2252032+sim.fakeKB())/17811456, pct=Math.min(100,Math.ceil(used*100));
+  const people=sim.users().filter(u=>u.uid>=1000&&u.uid<60000).map(u=>u.name);
+  const sh=sim.cur();
+  $('#status').innerHTML=`<div><span class="k">サービス</span><span class="v">${svc('httpd')} ${svc('sshd')}</span></div>`+
+    `<div><span class="k">ディスク（/）</span><span class="v${pct>=90?' hot':''}">${pct}% 使用</span></div>`+
+    `<div><span class="k">ユーザー</span><span class="v" title="${esc(people.join(', '))}">${esc(people.join(' '))}</span></div>`+
+    `<div><span class="k">いまの操作</span><span class="v">${esc(sh.user)} : ${esc(sh.cwd.replace(sh.get('HOME'),'~')||'/')}</span></div>`;
+  $('#whoami').textContent=sh.user+(sh.cred.uid===0?' (root)':'');
+}
+function renderLadder(){
+  let html='', ph=null;
+  STAGES.forEach((st,si)=>{ if(st.phase!==ph){ ph=st.phase; html+=`<div class="ph">${esc(ph)}</div>`; }
+    const t=stageStat(st);
+    html+=`<button class="lstage${t.clear?' clear':''}" data-si="${si}" aria-current="${si===cur.si}"><span class="no">${t.clear?'✓':si+1}</span><span class="nm">${esc(st.name)}</span><span class="bar"><i style="width:${Math.round(100*t.fixed/t.n)}%"></i></span></button>`; });
+  $('#ladder').innerHTML=html;
+  const clears=STAGES.filter(s=>stageStat(s).clear).length, fixed=ALL.filter(x=>prog[x.id]?.l==='o').length;
+  $('#overall').innerHTML=clears===STAGES.length?`<b>完走</b>　全 ${ALL.length} 課題をクリア<span class="meter"><i style="width:100%"></i></span>`
+    :`<b>${clears}</b> / ${STAGES.length} ステージ クリア　課題 ${fixed} / ${ALL.length}<span class="meter"><i style="width:${Math.round(100*fixed/ALL.length)}%"></i></span>`;
+}
+function renderHead(){
+  const st=STAGES[cur.si], t=stageStat(st);
+  $('#stagehead').innerHTML=`<div><span class="ph">ステージ ${cur.si+1} / ${STAGES.length}　${esc(st.phase)}</span><h2>${esc(st.name)}</h2><p>${esc(st.goal)}</p></div>`+
+    `<div class="steps">${st.steps.map((x,k)=>{ const r=prog[x.id]; return `<button data-k="${k}" class="${r?r.l:''}" aria-current="${k===cur.k}" title="${esc(x.title||'確認テスト')}">${k+1}</button>`; }).join('')}</div>`;
+}
+const TAGS={task:'依頼',trouble:'障害',quiz:'確認テスト'};
+function renderTicket(){
+  const x=step(), r=prog[x.id], tk=$('#ticket');
+  tk.className='ticket'+(x.kind==='trouble'?' trouble':x.kind==='quiz'?' quizt':'');
+  const head=`<div class="thead"><span class="tag">${TAGS[x.kind]}</span><span class="tno">#${String(cur.si+1).padStart(2,'0')}-${cur.k+1}</span>${r?`<span class="state ${r.l}">${r.l==='o'?'クリア済み':'未クリア'}</span>`:''}</div>`;
+  if(x.kind==='quiz'){
+    const order=cur.order||(cur.order=shuffle([x.a,...x.w]));
+    tk.innerHTML=head+`<p class="tbody">${x.q}</p><div class="choices">${order.map((c,i)=>`<button class="choice" data-i="${i}"><span class="k">${i+1}</span><span class="ct">${esc(c)}</span></button>`).join('')}</div><div id="qres"></div><div class="tactions"><button class="btn primary" id="next" hidden>次へ →</button></div>`;
+    if(cur.picked!=null) showQuizResult();
+    return; }
+  tk.innerHTML=head+`<h3>${esc(x.title)}</h3><p class="from">${x.kind==='trouble'?'障害の報告':'前任者メモより'}</p><p class="tbody">${x.body}</p>`+
+    `<div id="hint"></div><div id="tres"></div>`+
+    `<div class="tactions"><button class="btn" id="hintBtn">ヒント</button><button class="btn" id="reveal">答えを見る</button><button class="btn primary" id="next">${cur.state==='done'?'次へ →':'飛ばして次へ'}</button></div>`;
+  if(cur.hint) showHint();
+  if(cur.state==='done') showTaskResult(true); else if(cur.revealed) showTaskResult(false);
+}
+const shuffle=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+function showHint(){ const h=$('#hint'); if(h) h.innerHTML=`<div class="hint"><b>ヒント</b>　${step().hint}</div>`; }
+function answerText(x){ return x.solve.map(c=>'$ '+c).join('\n'); }
+function showTaskResult(ok){
+  const x=step(), box=$('#tres'); if(!box) return;
+  box.innerHTML=`<div class="result ${ok?'good':'info'}"><span class="verdict">${ok?(cur.errs?'クリア（途中でエラーあり）':'クリア'):'答えの例'}</span><pre>${esc(answerText(x))}</pre><span class="explain">${x.explain}</span></div>`;
+}
+function showQuizResult(){
+  const x=step(), ok=cur.order[cur.picked]===x.a;
+  document.querySelectorAll('#ticket .choice').forEach((b,j)=>{ b.disabled=true; if(cur.order[j]===x.a) b.classList.add('correct'); else if(j===cur.picked) b.classList.add('wrong'); else b.classList.add('dim'); });
+  $('#qres').innerHTML=`<div class="result ${ok?'good':'bad'}"><span class="verdict">${ok?'正解':'不正解'}</span><span class="explain">${esc(x.ex)}</span></div>`;
+  $('#next').hidden=false;
+}
+function stageEnd(){
+  const st=STAGES[cur.si], t=stageStat(st), last=cur.si===STAGES.length-1, tk=$('#ticket');
+  tk.className='ticket';
+  const allClear=STAGES.every(s=>stageStat(s).clear);
+  tk.innerHTML=`<div class="endcard"><h3>ステージ ${cur.si+1}「${esc(st.name)}」の終わりです</h3><p>${t.clear?`このステージはクリアです。初見で正解した課題は ${st.steps.filter(x=>prog[x.id]?.f==='o').length} / ${t.n} 個でした。`:`未クリアの課題が ${t.n-t.fixed} 個あります。上の番号から選んで、やり直せます。`}</p>`+
+    (last?(allClear?'<p><b>全ステージをクリアしました。server1 の引き継ぎ、完走です。</b></p>':'<p>まだクリアしていないステージがあります。左の一覧から確認できます。</p>'):'')+
+    `<div class="tactions">${last?'':`<button class="btn primary" id="nextStage">ステージ ${cur.si+2}「${esc(STAGES[cur.si+1].name)}」へ →</button>`}</div>`+
+    (!last?'<p class="from">次のステージは、ここまでの作業の状態をそのまま引き継いで始まります。</p>':'')+'</div>';
+}
+function renderAll(){ renderLadder(); renderHead(); renderTicket(); renderStatus(); }
+
+/* 課題を始める。fresh=true なら、その位置の状態を模範解答から作り直す */
+function openStep(si,k,fresh){
+  cur.si=si; cur.k=k; cur.state='play'; cur.revealed=false; cur.hint=false; cur.picked=null; cur.order=null; cur.errs=0; cur.ended=false;
+  if(fresh) rebuild(sim,si,k);
+  else { const x=step(); if(x.pre){ const t=sim.t; sim.t=null; x.pre(sim); sim.t=t; } normalize(sim); sim.refresh(); }
+  if(fresh&&(si||k)) sim.print(`# ステージ ${si+1}「${STAGES[si].name}」の課題 ${k+1} から始めます（それより前の作業は模範解答の状態です）`,'dim');
+  persist(); renderAll(); term.focus();
+}
+function goNext(){
+  const x=step();
+  /* 終えていない作業を飛ばすときは、模範解答を当てて状態をそろえる（後の課題が成り立つように） */
+  if(x.kind!=='quiz'&&cur.state!=='done'){ const t=sim.t, after=sim.onAfter; sim.t=null; sim.onAfter=null; runSolve(sim,x); while(sim.shells.length>1) sim.popShell(); sim.t=t; sim.onAfter=after;
+    sim.print(`# 課題 ${cur.si+1}-${cur.k+1} は模範解答の状態にして先へ進みました`,'dim'); if(!prog[x.id]) record(x,false); }
+  if(cur.k+1<STAGES[cur.si].steps.length) openStep(cur.si,cur.k+1,false);
+  else { cur.ended=true; renderLadder(); renderHead(); stageEnd(); }
+}
+sim.onAfter=()=>{
+  renderStatus();
+  const x=step(); if(cur.ended||x.kind==='quiz'||cur.state==='done') return;
+  if(sim.stats.errs) cur.errs=sim.stats.errs;
+  const j=judge(sim,x);
+  /* 答えを見た後で達成した場合も、最後の結果は○にする（初回の記録は「答えを見る」の時点で×になっている） */
+  if(j===true){ cur.state='done'; record(x,true); renderLadder(); renderHead(); renderTicket(); return; }
+  if(j==='miss') sim.print('% 表示が依頼と違います','note');
+  else if(j){ sim.print('% '+j,'note'); }
+};
+$('#ticket').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.id==='nextStage'){ openStep(cur.si+1,0,false); return; }
+  if(b.id==='next'){ goNext(); return; }
+  if(b.id==='hintBtn'){ cur.hint=true; showHint(); return; }
+  if(b.id==='reveal'){ const x=step(); cur.revealed=true; if(prog[x.id]?.l!=='o') record(x,false); showTaskResult(false); renderHead(); renderLadder(); return; }
+  if(b.classList.contains('choice')&&cur.picked==null){ const x=step(); cur.picked=+b.dataset.i; record(x,cur.order[cur.picked]===x.a); showQuizResult(); renderHead(); renderLadder(); }
+});
+$('#stagehead').addEventListener('click',e=>{ const b=e.target.closest('button[data-k]'); if(!b) return; const k=+b.dataset.k; if(k===cur.k&&!cur.ended) return; openStep(cur.si,k,true); });
+$('#ladder').addEventListener('click',e=>{ const b=e.target.closest('.lstage'); if(!b) return; const si=+b.dataset.si; const st=STAGES[si];
+  const k=Math.max(0,st.steps.findIndex(x=>prog[x.id]?.l!=='o')); openStep(si,k===-1?0:k,true); });
+document.addEventListener('keydown',e=>{
+  if(step().kind!=='quiz'||e.ctrlKey||e.metaKey||e.altKey||e.isComposing) return;
+  const tag=(e.target.tagName||'').toLowerCase(); if(tag==='input') return;
+  if(/^[1-4]$/.test(e.key)&&cur.picked==null){ const b=document.querySelector(`#ticket .choice[data-i="${+e.key-1}"]`); if(b) b.click(); }
+  else if(e.key==='Enter'&&cur.picked!=null){ e.preventDefault(); goNext(); } });
+$('#resetAll').addEventListener('click',e=>{ const b=e.target; if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='もう一度押すと消去'; setTimeout(()=>{ delete b.dataset.armed; b.textContent='記録を消す'; },4000); return; }
+  for(const k of Object.keys(prog)) delete prog[k]; cur.si=0; cur.k=0; persist(); openStep(0,0,true); b.textContent='記録を消す'; delete b.dataset.armed; });
+
+/* 起動：前回の位置から、模範解答で状態を作って再開する */
+openStep(Math.min(cur.si,STAGES.length-1),Math.min(cur.k,STAGES[Math.min(cur.si,STAGES.length-1)].steps.length-1),true);
+</script>
+</body>
+</html>
