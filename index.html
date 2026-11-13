@@ -9,7 +9,7 @@
 :root{
   color-scheme:light;
   --ink:#111; --paper:#fffbe8; --yellow:#ffe14a; --red:#e0213b; --blue:#22c3ff;
-  --pink:#ffd3dc; --green:#d6f7a8; --sky:#c9ecff; --lavender:#dcd3ff;
+  --pink:#ffd3dc; --green:#d6f7a8; --sky:#c9ecff; --lavender:#dcd3ff; --peach:#ffdcb8;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -71,9 +71,9 @@ footer a{color:inherit;font-weight:800}
 <canvas id="rain" aria-hidden="true"></canvas>
 <main>
   <header>
-    <span class="kicker">ブラウザだけで動く 5 本</span>
+    <span class="kicker">ブラウザだけで動く 6 本</span>
     <h1>学習ツール集</h1>
-    <p class="lead">ネットワークと基本情報を、<b>手を動かして</b>覚える。</p>
+    <p class="lead">ネットワーク、Linux、基本情報を、<b>手を動かして</b>覚える。</p>
   </header>
 
   <div class="tape" aria-hidden="true"><div id="tape"></div></div>
@@ -97,6 +97,13 @@ footer a{color:inherit;font-weight:800}
       <span class="mark">SQL&gt;</span>
       <span class="name">MySQL 基本操作ドリル</span>
       <span class="desc">MySQL の接続、SQL、トランザクション、権限を、ブラウザ上の疑似コンソールで練習します。結果と状態を自動で採点します。</span>
+      <span class="chips"><span>通し練習</span><span>一問一答</span><span>四択</span><span>早見表</span></span>
+      <span class="go">開く →</span>
+    </a></li>
+    <li><a class="tool" href="linux-drill/" style="--c:var(--peach);--r:.7deg">
+      <span class="mark">~]$</span>
+      <span class="name">Linux 基本操作ドリル</span>
+      <span class="desc">LinuC レベル1・LPIC-1 の範囲の操作を、ブラウザ上の疑似 bash で練習します。ファイルの中身と権限の状態を自動で採点します。</span>
       <span class="chips"><span>通し練習</span><span>一問一答</span><span>四択</span><span>早見表</span></span>
       <span class="go">開く →</span>
     </a></li>
@@ -125,7 +132,7 @@ footer a{color:inherit;font-weight:800}
 
 <script>
 // 帯の文字列。同じ内容を 2 回並べ、半分動いた時点で先頭に戻して継ぎ目をなくす
-const TAPE = '★ enable ★ configure terminal ★ 255.255.255.192 ★ no shutdown ★ SELECT * FROM ★ Get-Process ★ 擬似言語 ★ トレース ★ 二分探索 ★ show running-config ';
+const TAPE = '★ enable ★ configure terminal ★ 255.255.255.192 ★ no shutdown ★ SELECT * FROM ★ chmod 640 ★ grep -v '^#' ★ Get-Process ★ 擬似言語 ★ トレース ★ 二分探索 ★ show running-config ';
 document.getElementById('tape').textContent = TAPE.repeat(4) + TAPE.repeat(4);
 
 // 背景に降る記号。動きを減らす設定の閲覧者には出さない
