@@ -1,6 +1,6 @@
 # 学習ツール集
 
-ネットワーク、データベース、PowerShell、基本情報技術者試験の学習用に作った、ブラウザで動く 5 つのツールです。
+ネットワーク、データベース、Linux、PowerShell、基本情報技術者試験の学習用に作った、ブラウザで動く 6 つのツールです。
 
 **公開ページ：** https://yamagata-inaka.github.io/study-tools/
 
@@ -9,6 +9,7 @@
 | [ルータ基本設定ドリル](https://yamagata-inaka.github.io/study-tools/router-drill/) | Cisco IOS ルータの初期設定を疑似コンソールで練習する |
 | [サブネット計算ドリル](https://yamagata-inaka.github.io/study-tools/subnet-drill/) | CCNA のサブネット計算を反復練習する |
 | [MySQL 基本操作ドリル](https://yamagata-inaka.github.io/study-tools/mysql-drill/) | MySQL の接続、SQL、トランザクション、権限を疑似コンソールで練習する |
+| [Linux 基本操作ドリル](https://yamagata-inaka.github.io/study-tools/linux-drill/) | LinuC レベル1・LPIC-1 の範囲の操作を疑似 bash で練習する |
 | [PowerShell 修練帳](https://yamagata-inaka.github.io/study-tools/powershell-drill/) | PowerShell のコマンドからサーバー管理、リモート実行までを解説と模擬コンソールで学ぶ |
 | [科目B 完走コース](https://yamagata-inaka.github.io/study-tools/kamoku-b/) | 基本情報技術者試験 科目B を 171 問・16 ステージで対策する |
 
@@ -69,6 +70,34 @@
 
 基本操作の範囲だけを扱う模擬で、実機の完全な再現ではありません。ビュー、トリガー、ストアドプロシージャ、ウィンドウ関数などは実行できません。`root` の `SHOW GRANTS` は簡略化しています。
 
+## Linux 基本操作ドリル
+
+**目的：** サーバーを用意しなくても、LinuC レベル1・LPIC-1（101・102）で問われる基本操作を、コマンドを打って覚えられるようにします。
+
+- **疑似 bash と仮想ファイルシステム：** シェルの字句解析、ブレース展開、変数とコマンド置換、グロブ、パイプ、リダイレクトを JavaScript で実装しています。ファイルは所有者、権限、SUID・SGID・スティッキービット、ハードリンクとシンボリックリンクを持ち、権限の判定もカーネルと同じ考え方で行います。
+- **状態で採点：** 入力した文字列ではなく、作られたファイルの中身、権限、所有者、ユーザーとグループの設定を採点します。書き方が違っても、結果が正しければ正解です。
+- **つまずきの再現：** `sort f > f` でファイルが空になる、`usermod -G` に `-a` を付けないと補助グループが置き換わる、`sudo echo x > /root/f` が失敗する、グループの追加はログインし直すまで反映されない、などを実物と同じ動きで体験できます。
+- **4 つの学習形式：** 通し練習（15 項目）、一問一答（45 項目）、四択（132 問、101・102 で絞り込み可）、早見表を切り替えられます。通し練習のランダム問題と一問一答では値が毎回変わります。
+
+**実物との比較：** Rocky Linux 9（RHEL 9 互換）のコンテナに同じ初期状態を作り、206 のコマンド行の標準出力と標準エラー出力を比べました。日時は比較から除いています。
+
+| 比較した内容 | 行の数 | 一致 |
+|---|---|---|
+| ファイル操作、テキスト処理、権限、ユーザー管理、アーカイブ、サービスのコマンドとエラー文 | 206 | 193 |
+
+一致しなかった 13 行の内訳は次のとおりです。
+- ドリル側を直したもの 2 行：`systemctl status` の末尾の空行、空のパスワードのロック解除。直した後のコンテナでの再比較はしていません。
+- 比較の環境によるもの 11 行：
+  - find の出力順（ディスク上の順で決まり、一定しない）
+  - 端末の有無で変わる表示 5 行（tar、rm の確認、alias、exit）
+  - polkit を入れていない比較用コンテナでの systemctl の権限エラー 3 行
+  - sed の一時ファイル名（乱数）
+  - ディレクトリのリンク数（コンテナのファイルシステムの事情）
+
+polkit がある端末では、一般ユーザーの `systemctl start` がドリルと同じ `Interactive authentication required.` になることも確認しました。sudo、su、passwd のパスワード入力の流れ（sudo の初回の注意書き、3 回の失敗、passwd の聞き直しと弱いパスワードの警告）は、疑似端末で実機を動かし、表示を目で照合しました。この比較で、一般ユーザーの umask が 022 であること、RHEL 系には `/usr/bin/cd` があり `sudo cd` がエラーにならないことが分かり、ドリルに反映しています。
+
+基本操作の範囲だけを扱う模擬で、実機の完全な再現ではありません。vi などのエディタ、if・for を含むスクリプト、バックグラウンド実行、パッケージ管理、cron は実行できず、四択で扱います。`ps`、`ip`、`df` などの出力は用意した値です。
+
 ## PowerShell 修練帳
 
 **目的：** Bash との違いであるオブジェクトのパイプラインを軸に、PowerShell の基本からサーバー管理、リモート実行までを順番に身につけられるようにします。
@@ -107,4 +136,4 @@ PowerShell の実行環境ではありません。実技の出力は用意した
 
 これらのファイルには、独立行政法人情報処理推進機構（IPA）が公表した試験問題とサンプル問題が含まれ、その著作権は IPA にあります。利用する場合は [IPA の案内](https://www.ipa.go.jp/shiken/faq.html)に従ってください。
 
-本リポジトリは個人の学習用制作物で、IPA、Cisco Systems、Oracle および Microsoft とは関係ありません。Cisco、Cisco IOS、CCNA は Cisco Systems, Inc. の商標または登録商標です。MySQL は Oracle およびその関連会社の商標または登録商標です。PowerShell、Windows は Microsoft グループの企業の商標です。
+本リポジトリは個人の学習用制作物で、IPA、Cisco Systems、Oracle、Microsoft、LPI-Japan、Linux Professional Institute および Red Hat とは関係ありません。Cisco、Cisco IOS、CCNA は Cisco Systems, Inc. の商標または登録商標です。MySQL は Oracle およびその関連会社の商標または登録商標です。PowerShell、Windows は Microsoft グループの企業の商標です。LinuC は特定非営利活動法人エルピーアイジャパン（LPI-Japan）の登録商標です。LPIC は Linux Professional Institute Inc. の登録商標です。Linux は Linus Torvalds 氏の登録商標です。Red Hat、Red Hat Enterprise Linux は Red Hat, Inc. の商標または登録商標です。
