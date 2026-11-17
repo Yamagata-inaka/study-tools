@@ -1,6 +1,6 @@
 # 学習ツール集
 
-ネットワーク、データベース、Linux、PowerShell、基本情報技術者試験の学習用に作った、ブラウザで動く 7 つのツールです。
+ネットワーク、データベース、Linux、PowerShell、基本情報技術者試験、運転免許の学科試験の学習用に作った、ブラウザで動く 8 つのツールです。
 
 **公開ページ：** https://yamagata-inaka.github.io/study-tools/
 
@@ -13,6 +13,7 @@
 | [Linux 基本操作ドリル](https://yamagata-inaka.github.io/study-tools/linux-drill/) | LinuC レベル1・LPIC-1 の範囲の操作を疑似 bash で練習する |
 | [PowerShell 修練帳](https://yamagata-inaka.github.io/study-tools/powershell-drill/) | PowerShell のコマンドからサーバー管理、リモート実行までを解説と模擬コンソールで学ぶ |
 | [科目B 完走コース](https://yamagata-inaka.github.io/study-tools/kamoku-b/) | 基本情報技術者試験 科目B を 171 問・16 ステージで対策する |
+| [運転免許 学科マニュアル](https://yamagata-inaka.github.io/study-tools/menkyo-manual/) | 普通免許（AT 限定）の学科試験を、解説と○×の確認テスト、一問一答、模擬試験で対策する |
 
 ## 制作の役割分担
 
@@ -139,6 +140,17 @@ PowerShell の実行環境ではありません。実技の出力は用意した
 
 71 問すべてについて、問番号と正解が IPA の公表資料と一致することをスクリプトで確認しました。Web 表示のために図表の組み直しや文章化、文言の調整をしているため、各問の出典に「一部改変」と記載しています。解説は IPA によるものではありません。
 
+## 運転免許 学科マニュアル
+
+**目的：** 普通自動車免許（第一種・AT 限定）の学科試験（仮免・本免）に向けて、交通ルールを章ごとに理解し、試験と同じ○×形式で確かめられるようにします。
+
+- **章ごとの流れ：** 全 10 章を「解説 → 確認テスト」の順に進めます。第 1 章は試験の形式とひっかけの型、第 9 章は AT 車の操作です。付録に、試験に出る数字の一覧があります。
+- **3 つの解き方：** 章末の確認テスト、全章または章を選んでランダムに 1 問ずつ出す一問一答（答えるとすぐに正誤と解説を表示）、最後にまとめて採点する模擬試験（20 問または 50 問、90% 以上で合格）です。
+- **間違えた問題の解き直し：** 一問一答の結果画面から、間違えた問題だけをもう一度出題できます。
+- **2026 年の改正を反映：** 中央線などのない一般道路の法定速度が 30km/h になったこと（2026 年 9 月 1 日施行）と、自転車の右側を通過するときの義務（2026 年 4 月 1 日施行）を、本文と問題に入れています。
+
+**確かめていないこと：** 本文と問題は、道路交通法と「交通の教則」の内容をもとに Claude が作成したもので、原文との照合はしていません。2026 年の改正は、施行日と内容を報道で確認しましたが、条文は確認していません。標識の図は載せていません。本免許の 95 問形式、イラスト問題、制限時間は再現していません。
+
 ## ライセンス
 
 コードとオリジナル問題は [MIT License](LICENSE) です。ただし、次のファイルは対象外です。
@@ -151,4 +163,4 @@ PowerShell の実行環境ではありません。実技の出力は用意した
 
 これらのファイルには、独立行政法人情報処理推進機構（IPA）が公表した試験問題とサンプル問題が含まれ、その著作権は IPA にあります。利用する場合は [IPA の案内](https://www.ipa.go.jp/shiken/faq.html)に従ってください。
 
-本リポジトリは個人の学習用制作物で、IPA、Cisco Systems、Oracle、Microsoft、LPI-Japan、Linux Professional Institute および Red Hat とは関係ありません。Cisco、Cisco IOS、CCNA は Cisco Systems, Inc. の商標または登録商標です。MySQL は Oracle およびその関連会社の商標または登録商標です。PowerShell、Windows は Microsoft グループの企業の商標です。LinuC は特定非営利活動法人エルピーアイジャパン（LPI-Japan）の登録商標です。LPIC は Linux Professional Institute Inc. の登録商標です。Linux は Linus Torvalds 氏の登録商標です。Red Hat、Red Hat Enterprise Linux は Red Hat, Inc. の商標または登録商標です。
+本リポジトリは個人の学習用制作物で、IPA、Cisco Systems、Oracle、Microsoft、LPI-Japan、Linux Professional Institute および Red Hat とは関係ありません。運転免許 学科マニュアルは、警察、運転免許試験場、教習所の公式教材ではありません。Cisco、Cisco IOS、CCNA は Cisco Systems, Inc. の商標または登録商標です。MySQL は Oracle およびその関連会社の商標または登録商標です。PowerShell、Windows は Microsoft グループの企業の商標です。LinuC は特定非営利活動法人エルピーアイジャパン（LPI-Japan）の登録商標です。LPIC は Linux Professional Institute Inc. の登録商標です。Linux は Linus Torvalds 氏の登録商標です。Red Hat、Red Hat Enterprise Linux は Red Hat, Inc. の商標または登録商標です。
